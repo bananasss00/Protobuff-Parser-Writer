@@ -19,7 +19,7 @@ static std::string profile_info_changer(void *pubDest, uint32_t *pcubMsgSize) {
 	
 	//replace ranks
 	auto _ranking = msg.has(_gc2ch::ranking) ? msg.get(_gc2ch::ranking).String() : std::string("");
-	ProtoWriter ranking(_ranking, 5);
+	ProtoWriter ranking(_ranking, 6);
 	ranking.replace(Field(_pri::rank_id, TYPE_UINT32, (int64_t)9));
 	ranking.replace(Field(_pri::wins, TYPE_UINT32, (int64_t)999));
 	msg.replace(Field(_gc2ch::ranking, TYPE_STRING, ranking.serialize()));
