@@ -114,7 +114,7 @@ bool Protobuffs::EquipWeapon(int weaponid, int classid, int slotid)
 	// 	optional bool swap = 4;
 	// }
 	ProtoWriter msg(4);
-	msg.add(Field(1, TYPE_UINT64, (int64_t)(/*START_ITEM_INDEX*/10000 + weaponid))); //item_id
+	msg.add(Field(1, TYPE_UINT64, (int64_t)(START_ITEM_INDEX + weaponid))); //item_id
 	msg.add(Field(2, TYPE_UINT32, (int64_t)classid)); //new_class
 	msg.add(Field(3, TYPE_UINT32, (int64_t)slotid)); //new_slot
 	msg.add(Field(4, TYPE_BOOL, (int64_t)true)); //swap
