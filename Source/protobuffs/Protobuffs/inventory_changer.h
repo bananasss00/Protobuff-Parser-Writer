@@ -285,7 +285,7 @@ static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemInd
 	uint32_t steamid = g_SteamUser->GetSteamID().GetAccountID();
 
 	ProtoWriter item(19);
-	item.add(Field(CSOEconItem::id, TYPE_UINT64, (int64_t)(START_ITEM_INDEX + index)));
+	item.add(Field(CSOEconItem::id, TYPE_UINT64, (int64_t)(START_ITEM_INDEX + itemIndex)));
 	item.add(Field(CSOEconItem::account_id, TYPE_UINT32, (int64_t)steamid));
 	item.add(Field(CSOEconItem::def_index, TYPE_UINT32, (int64_t)itemIndex));
 	item.add(Field(CSOEconItem::inventory, TYPE_UINT32, (int64_t)(START_ITEM_INDEX + index)));
