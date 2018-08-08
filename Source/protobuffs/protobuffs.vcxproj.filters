@@ -33,13 +33,7 @@
     <ClInclude Include="Protobuffs\profile_info_changer.h">
       <Filter>src\Protobuffs</Filter>
     </ClInclude>
-    <ClInclude Include="Protobuffs\ProtoField.h">
-      <Filter>src\Protobuffs</Filter>
-    </ClInclude>
     <ClInclude Include="Protobuffs\ProtobuffMessages.h">
-      <Filter>src\Protobuffs</Filter>
-    </ClInclude>
-    <ClInclude Include="Protobuffs\ProtoWriter.h">
       <Filter>src\Protobuffs</Filter>
     </ClInclude>
     <ClInclude Include="Protobuffs.h">
@@ -47,6 +41,9 @@
     </ClInclude>
     <ClInclude Include="IMemAlloc.h">
       <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="Protobuffs\ProtoParse.h">
+      <Filter>src\Protobuffs</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

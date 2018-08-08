@@ -95,8 +95,7 @@
     <ClInclude Include="Protobuffs\inventory_changer.h" />
     <ClInclude Include="Protobuffs\profile_info_changer.h" />
     <ClInclude Include="Protobuffs\ProtobuffMessages.h" />
-    <ClInclude Include="Protobuffs\ProtoField.h" />
-    <ClInclude Include="Protobuffs\ProtoWriter.h" />
+    <ClInclude Include="Protobuffs\ProtoParse.h" />
     <ClInclude Include="steam.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

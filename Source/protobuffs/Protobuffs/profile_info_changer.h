@@ -1,5 +1,5 @@
 #pragma once
-#include "ProtoWriter.h"
+#include "ProtoParse.h"
 #include "ProtobuffMessages.h"
 
 #define _gc2ch MatchmakingGC2ClientHello
