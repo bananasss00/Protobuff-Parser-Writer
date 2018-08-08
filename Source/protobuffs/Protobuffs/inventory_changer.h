@@ -68,7 +68,7 @@ static std::string inventory_changer(void *pubDest, uint32_t *pcubMsgSize) {
 	fix_null_inventory(cache); 
 	// Add custom items
 	auto objects = cache.getAll(CMsgSOCacheSubscribed::objects);
-	for (int i = 0; i < objects.size(); i++)
+	for (size_t i = 0; i < objects.size(); i++)
 	{
 		ProtoWriter object(objects[i].String(), 2);
 
@@ -126,7 +126,7 @@ static void fix_null_inventory(ProtoWriter& cache)
 {
 	bool inventory_exist = false;
 	auto objects = cache.getAll(CMsgSOCacheSubscribed::objects);
-	for (int i = 0; i < objects.size(); i++)
+	for (size_t i = 0; i < objects.size(); i++)
 	{
 		ProtoWriter object(objects[i].String(), 2);
 		if (!object.has(SubscribedType::type_id))
@@ -149,7 +149,7 @@ static void fix_null_inventory(ProtoWriter& cache)
 static void clear_equip_state(ProtoWriter& object)
 {
 	auto object_data = object.getAll(SubscribedType::object_data);
-	for (int j = 0; j < object_data.size(); j++)
+	for (size_t j = 0; j < object_data.size(); j++)
 	{
 		ProtoWriter item(object_data[j].String(), 19);
 
@@ -162,7 +162,7 @@ static void clear_equip_state(ProtoWriter& object)
 		null_equipped_state.replace(Field(CSOEconItemEquipped::new_slot, TYPE_UINT32, (int64_t)0));
 		// unequip all
 		auto equipped_state = item.getAll(CSOEconItem::equipped_state);
-		for (int k = 0; k < equipped_state.size(); k++)
+		for (size_t k = 0; k < equipped_state.size(); k++)
 			item.replace(Field(CSOEconItem::equipped_state, TYPE_STRING, null_equipped_state.serialize()), k);
 
 		object.replace(Field(SubscribedType::object_data, TYPE_STRING, item.serialize()), j);

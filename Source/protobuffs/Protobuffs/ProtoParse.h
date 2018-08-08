@@ -4,9 +4,6 @@
 #include <string>
 #include <vector>
 
-struct Field;
-class  ProtoWriter;
-
 #define MAKE_TAG(FIELD_NUMBER, TYPE) static_cast<uint32_t>(((FIELD_NUMBER) << kTagTypeBits) | (TYPE))
 
 struct Tag
@@ -358,7 +355,7 @@ double Field::Double() {
 }
 int32_t Field::Int32() {
 	size_t bytesRead;
-	return readVarUint64((void*)value.data(), bytesRead);
+	return static_cast<int32_t>( readVarUint64((void*)value.data(), bytesRead) );
 }
 int64_t Field::Int64() {
 	size_t bytesRead;
@@ -455,7 +452,7 @@ void ProtoWriter::print()
 	void* mem = (void*)data.data();
 	size_t size = data.size();
 	int j = 0;
-	for (int i = 0; i <= size; ++i) {
+	for (size_t i = 0; i <= size; ++i) {
 		printf("%.2X ", *(unsigned char*)((uintptr_t)mem + i));
 		j++;
 		if (j == 16)
