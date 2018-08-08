@@ -325,13 +325,13 @@ static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemInd
 	// Paint Kit
 	ProtoWriter PaintKitAttribute(3);
 	PaintKitAttribute.add(CSOEconItemAttribute::def_index, 6);
-	PaintKitAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(paintKit));
+	PaintKitAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes((float)paintKit));
 	item.add(CSOEconItem::attribute, PaintKitAttribute.serialize());
 
 	// Paint Seed
 	ProtoWriter SeedAttribute(3);
 	SeedAttribute.add(CSOEconItemAttribute::def_index, 7);
-	SeedAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(seed));
+	SeedAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes((float)seed));
 	item.add(CSOEconItem::attribute, SeedAttribute.serialize());
 
 	// Paint Wear
