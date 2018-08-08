@@ -9,6 +9,10 @@
 
 //FORMAT: constexpr static Tag field_name = {field_id, field_type};
 
+struct CMsgClientHello {
+	constexpr static Tag client_session_need = {3, TYPE_UINT32};
+};
+
 // ProfileChanger
 struct MatchmakingGC2ClientHello {
 	constexpr static Tag ranking = {7, TYPE_STRING};
@@ -62,6 +66,7 @@ struct CMsgAdjustItemEquippedState {
 	constexpr static Tag item_id = {1, TYPE_UINT64};
 	constexpr static Tag new_class = {2, TYPE_UINT32};
 	constexpr static Tag new_slot = {3, TYPE_UINT32};
+	constexpr static Tag swap = {4, TYPE_BOOL};
 };
 
 struct CSOEconItemEquipped {

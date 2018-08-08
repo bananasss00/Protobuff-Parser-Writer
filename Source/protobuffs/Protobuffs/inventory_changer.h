@@ -58,6 +58,13 @@ static TeamID GetAvailableClassID(int definition_index);
 static int GetSlotID(int definition_index);
 static std::vector<uint32_t> music_kits = { 3, 4, 5, 6, 7, 8 };
 
+
+template<typename T>
+inline std::string get_4bytes(T value)
+{
+	return std::string{ reinterpret_cast<const char*>( reinterpret_cast<void*>(&value) ), 4 };
+}
+
 static std::string inventory_changer(void *pubDest, uint32_t *pcubMsgSize) {
 	ProtoWriter msg((void*)((DWORD)pubDest + 8), *pcubMsgSize - 8, 11);
 	if (msg.getAll(CMsgClientWelcome::outofdate_subscribed_caches).empty())
@@ -237,11 +244,9 @@ static void apply_music_kits(ProtoWriter& object)
 	{
 		if (selected_musickit_gui != i)
 		{
-			uint32_t musikkit_id_value = i;
-			auto kit_id = std::string{ reinterpret_cast<const char*>((void*)&musikkit_id_value), 4 };
 			ProtoWriter musikkit_id(3);
 			musikkit_id.add(CSOEconItemAttribute::def_index, 166);
-			musikkit_id.add(CSOEconItemAttribute::value_bytes, kit_id);
+			musikkit_id.add(CSOEconItemAttribute::value_bytes, get_4bytes(i)); //set kit id
 			music_kit.add(CSOEconItem::attribute, musikkit_id.serialize());
 
 			music_kit.add(CSOEconItem::inventory, (START_MUSICKIT_INDEX + i));
@@ -252,11 +257,9 @@ static void apply_music_kits(ProtoWriter& object)
 
 	if (selected_musickit_gui)
 	{
-		uint32_t musikkit_id_value = selected_musickit_gui;
-		auto kit_id = std::string{ reinterpret_cast<const char*>((void*)&musikkit_id_value), 4 };
 		ProtoWriter musikkit_id(3);
 		musikkit_id.add(CSOEconItemAttribute::def_index, 166);
-		musikkit_id.add(CSOEconItemAttribute::value_bytes, kit_id);
+		musikkit_id.add(CSOEconItemAttribute::value_bytes, get_4bytes(selected_musickit_gui)); //set kit id
 		music_kit.add(CSOEconItem::attribute, musikkit_id.serialize());
 
 		music_kit.add(CSOEconItem::inventory, (START_MUSICKIT_INDEX + selected_musickit_gui));
@@ -320,27 +323,21 @@ static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemInd
 		}
 	}
 	// Paint Kit
-	float _PaintKitAttributeValue = (float)paintKit;
-	auto PaintKitAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_PaintKitAttributeValue), 4 };
 	ProtoWriter PaintKitAttribute(3);
 	PaintKitAttribute.add(CSOEconItemAttribute::def_index, 6);
-	PaintKitAttribute.add(CSOEconItemAttribute::value_bytes, PaintKitAttributeValue);
+	PaintKitAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(paintKit));
 	item.add(CSOEconItem::attribute, PaintKitAttribute.serialize());
 
 	// Paint Seed
-	float _SeedAttributeValue = (float)seed;
-	auto SeedAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_SeedAttributeValue), 4 };
 	ProtoWriter SeedAttribute(3);
 	SeedAttribute.add(CSOEconItemAttribute::def_index, 7);
-	SeedAttribute.add(CSOEconItemAttribute::value_bytes, SeedAttributeValue);
+	SeedAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(seed));
 	item.add(CSOEconItem::attribute, SeedAttribute.serialize());
 
 	// Paint Wear
-	float _WearAttributeValue = wear;
-	auto WearAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_WearAttributeValue), 4 };
 	ProtoWriter WearAttribute(3);
 	WearAttribute.add(CSOEconItemAttribute::def_index, 8);
-	WearAttribute.add(CSOEconItemAttribute::value_bytes, WearAttributeValue);
+	WearAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(wear));
 	item.add(CSOEconItem::attribute, WearAttribute.serialize());
 
 	// Stickers
@@ -352,25 +349,19 @@ static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemInd
 		StickerKitAttribute.add(CSOEconItemAttribute::value_bytes, std::string("\x00\x00\x00\x00"));
 		item.add(CSOEconItem::attribute, StickerKitAttribute.serialize());
 		// Sticker Wear
-		float _StickerWearAttributeValue = 0.001f;
-		auto StickerWearAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_StickerWearAttributeValue), 4 };
 		ProtoWriter StickerWearAttribute(3);
 		StickerWearAttribute.add(CSOEconItemAttribute::def_index, (114 + 4 * j));
-		StickerWearAttribute.add(CSOEconItemAttribute::value_bytes, StickerWearAttributeValue);
+		StickerWearAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(0.001f));
 		item.add(CSOEconItem::attribute, StickerWearAttribute.serialize());
 		// Sticker Scale
-		float _StickerScaleAttributeValue = 1.f;
-		auto StickerScaleAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_StickerScaleAttributeValue), 4 };
 		ProtoWriter StickerScaleAttribute(3);
 		StickerScaleAttribute.add(CSOEconItemAttribute::def_index, (115 + 4 * j));
-		StickerScaleAttribute.add(CSOEconItemAttribute::value_bytes, StickerScaleAttributeValue);
+		StickerScaleAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(1.f));
 		item.add(CSOEconItem::attribute, StickerScaleAttribute.serialize());
 		// Sticker Rotation
-		float _StickerRotationAttributeValue = 0.f;
-		auto StickerRotationAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_StickerRotationAttributeValue), 4 };
 		ProtoWriter StickerRotationAttribute(3);
 		StickerRotationAttribute.add(CSOEconItemAttribute::def_index, (116 + 4 * j));
-		StickerRotationAttribute.add(CSOEconItemAttribute::value_bytes, StickerRotationAttributeValue);
+		StickerRotationAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(0.f));
 		item.add(CSOEconItem::attribute, StickerRotationAttribute.serialize());
 	}
 	object.add(SubscribedType::object_data, item.serialize());

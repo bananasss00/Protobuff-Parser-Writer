@@ -62,13 +62,8 @@ bool Protobuffs::PreSendMessage(uint32_t &unMsgType, void* pubData, uint32_t &cu
 ///////////////////////////////////
 bool Protobuffs::SendClientHello()
 {
-	// message CMsgClientHello {
-	// 	repeated .CMsgSOCacheHaveVersion socache_have_versions = 2;
-	// 	optional uint32 client_session_need = 3;
-	// 	optional uint32 partner_accountflags = 7;
-	// }
 	ProtoWriter msg(7);
-	msg.add(Field(3, TYPE_UINT32, (int64_t)1)); //client_session_need
+	msg.add(CMsgClientHello::client_session_need, 1);
 	auto packet = msg.serialize();
 
 	void* ptr = malloc(packet.size() + 8);
@@ -107,17 +102,11 @@ bool Protobuffs::SendMatchmakingClient2GCHello()
 
 bool Protobuffs::EquipWeapon(int weaponid, int classid, int slotid)
 {
-	// message CMsgAdjustItemEquippedState {
-	// 	optional uint64 item_id = 1;
-	// 	optional uint32 new_class = 2;
-	// 	optional uint32 new_slot = 3;
-	// 	optional bool swap = 4;
-	// }
 	ProtoWriter msg(4);
-	msg.add(Field(1, TYPE_UINT64, (int64_t)(START_ITEM_INDEX + weaponid))); //item_id
-	msg.add(Field(2, TYPE_UINT32, (int64_t)classid)); //new_class
-	msg.add(Field(3, TYPE_UINT32, (int64_t)slotid)); //new_slot
-	msg.add(Field(4, TYPE_BOOL, (int64_t)true)); //swap
+	msg.add(CMsgAdjustItemEquippedState::item_id, (START_ITEM_INDEX + weaponid));
+	msg.add(CMsgAdjustItemEquippedState::new_class, classid);
+	msg.add(CMsgAdjustItemEquippedState::new_slot, slotid);
+	msg.add(CMsgAdjustItemEquippedState::swap, true);
 	auto packet = msg.serialize();
 
 	void* ptr = malloc(packet.size() + 8);
