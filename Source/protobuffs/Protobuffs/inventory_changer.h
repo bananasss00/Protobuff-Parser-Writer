@@ -349,7 +349,7 @@ static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemInd
 		// Sticker Kit
 		ProtoWriter StickerKitAttribute(3);
 		StickerKitAttribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)(113 + 4 * j)));
-		StickerKitAttribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, "\x00\x00\x00\x00"));
+		StickerKitAttribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, std::string("\x00\x00\x00\x00")));
 		item.add(Field(CSOEconItem::attribute, TYPE_STRING, StickerKitAttribute.serialize()));
 		// Sticker Wear
 		float _StickerWearAttributeValue = 0.001f;

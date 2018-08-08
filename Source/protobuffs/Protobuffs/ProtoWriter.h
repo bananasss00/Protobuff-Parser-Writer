@@ -26,7 +26,7 @@ public:
 			return;
 		// parse packet
 		while (pos < size) {
-			auto field = Field::read((void*)((ptrdiff_t)data + pos), bytesRead);
+			auto field = ReadField((void*)((ptrdiff_t)data + pos), bytesRead);
 			if (!bytesRead) break;
 			
 			auto index = field.tag.field;
