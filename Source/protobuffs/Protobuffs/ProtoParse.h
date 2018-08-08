@@ -4,19 +4,10 @@
 #include <string>
 #include <vector>
 
-#define MAKE_TAG(FIELD_NUMBER, TYPE) static_cast<uint32_t>(((FIELD_NUMBER) << kTagTypeBits) | (TYPE))
-
 struct Field;
-class ProtoWriter;
+class  ProtoWriter;
 
-static uint32_t readVarUint32(void* data, size_t& bytesRead);
-static uint64_t readVarUint64(void* data, size_t& bytesRead);
-static Field ReadField(void* data, size_t& bytesRead);
-
-static constexpr int kTagTypeBits = 3;
-static constexpr uint32_t kTagTypeMask = (1 << kTagTypeBits) - 1;
-static constexpr int kMaxVarintBytes = 10;
-static constexpr int kMaxVarint32Bytes = 5;
+#define MAKE_TAG(FIELD_NUMBER, TYPE) static_cast<uint32_t>(((FIELD_NUMBER) << kTagTypeBits) | (TYPE))
 
 struct Tag
 {
@@ -46,176 +37,159 @@ enum FieldType {
 	MAX_FIELD_TYPE = 18,
 };
 
-enum WireType {
-	WIRETYPE_VARINT = 0,
-	WIRETYPE_FIXED64 = 1,
-	WIRETYPE_LENGTH_DELIMITED = 2,
-	WIRETYPE_START_GROUP = 3,
-	WIRETYPE_END_GROUP = 4,
-	WIRETYPE_FIXED32 = 5,
-};
-
-static const WireType kWireTypeForFieldType[MAX_FIELD_TYPE + 1] = {
-	static_cast<WireType>(-1),  // invalid
-	WIRETYPE_FIXED64,           // TYPE_DOUBLE
-	WIRETYPE_FIXED32,           // TYPE_FLOAT
-	WIRETYPE_VARINT,            // TYPE_INT64
-	WIRETYPE_VARINT,            // TYPE_UINT64
-	WIRETYPE_VARINT,            // TYPE_INT32
-	WIRETYPE_FIXED64,           // TYPE_FIXED64
-	WIRETYPE_FIXED32,           // TYPE_FIXED32
-	WIRETYPE_VARINT,            // TYPE_BOOL
-	WIRETYPE_LENGTH_DELIMITED,  // TYPE_STRING
-	WIRETYPE_START_GROUP,       // TYPE_GROUP
-	WIRETYPE_LENGTH_DELIMITED,  // TYPE_MESSAGE
-	WIRETYPE_LENGTH_DELIMITED,  // TYPE_BYTES
-	WIRETYPE_VARINT,            // TYPE_UINT32
-	WIRETYPE_VARINT,            // TYPE_ENUM
-	WIRETYPE_FIXED32,           // TYPE_SFIXED32
-	WIRETYPE_FIXED64,           // TYPE_SFIXED64
-	WIRETYPE_VARINT,            // TYPE_SINT32
-	WIRETYPE_VARINT,            // TYPE_SINT64
-};
-
 struct Field
 {
 	friend class ProtoWriter;
+public:
+	inline Field& operator=(const Field& f);
+
+	Field() : tag({ 0,0 }), value(""), full("") { }
+	Field(unsigned field, unsigned type, std::string value, std::string full);
+	
+	Field(Tag tag, std::string value);
+	Field(unsigned field, unsigned type, std::string value);
+
+	template<typename T>
+	Field(Tag tag, T value);
+
+	template<typename T>
+	Field(unsigned field, unsigned type, T value);
+
+public:
+	static Field ReadField(void* data, size_t& bytesRead);
+	
+public:
+	inline float Float();
+	inline double Double();
+	inline int32_t Int32();
+	inline int64_t Int64();
+	inline uint32_t UInt32();
+	inline uint64_t UInt64();
+	inline uint32_t Fixed32();
+	inline uint64_t Fixed64();
+	inline int32_t SFixed32();
+	inline int64_t SFixed64();
+	inline bool Bool();
+	inline std::string String();
+
 private:
 	Tag tag;
 	std::string value;
 	std::string full;
 
-public:
-	Field() : tag({ 0,0 }), value(""), full("") { }
+	static std::string getBytesVarint32(uint32_t value);
+	static std::string getBytesVarint64(uint64_t value);
+	static uint32_t readVarUint32(void* data, size_t& bytesRead);
+	static uint64_t readVarUint64(void* data, size_t& bytesRead);
 
-	Field& operator=(const Field& f) {
-		this->tag = f.tag;
-		this->value = f.value;
-		this->full = f.full;
-		return *this;
-	}
+	enum WireType {
+		WIRETYPE_VARINT = 0,
+		WIRETYPE_FIXED64 = 1,
+		WIRETYPE_LENGTH_DELIMITED = 2,
+		WIRETYPE_START_GROUP = 3,
+		WIRETYPE_END_GROUP = 4,
+		WIRETYPE_FIXED32 = 5,
+	};
 
-	Field(unsigned field, unsigned type, std::string value, std::string full) {
-		this->tag = { field, type };
-		this->value = value;
-		this->full = full;
-	}
+	constexpr static WireType kWireTypeForFieldType[MAX_FIELD_TYPE + 1] = {
+		static_cast<WireType>(-1),  // invalid
+		WIRETYPE_FIXED64,           // TYPE_DOUBLE
+		WIRETYPE_FIXED32,           // TYPE_FLOAT
+		WIRETYPE_VARINT,            // TYPE_INT64
+		WIRETYPE_VARINT,            // TYPE_UINT64
+		WIRETYPE_VARINT,            // TYPE_INT32
+		WIRETYPE_FIXED64,           // TYPE_FIXED64
+		WIRETYPE_FIXED32,           // TYPE_FIXED32
+		WIRETYPE_VARINT,            // TYPE_BOOL
+		WIRETYPE_LENGTH_DELIMITED,  // TYPE_STRING
+		WIRETYPE_START_GROUP,       // TYPE_GROUP
+		WIRETYPE_LENGTH_DELIMITED,  // TYPE_MESSAGE
+		WIRETYPE_LENGTH_DELIMITED,  // TYPE_BYTES
+		WIRETYPE_VARINT,            // TYPE_UINT32
+		WIRETYPE_VARINT,            // TYPE_ENUM
+		WIRETYPE_FIXED32,           // TYPE_SFIXED32
+		WIRETYPE_FIXED64,           // TYPE_SFIXED64
+		WIRETYPE_VARINT,            // TYPE_SINT32
+		WIRETYPE_VARINT,            // TYPE_SINT64
+	};
 
-	template<typename T>
-	Field(Tag tag, T value) {
-		auto wireType = kWireTypeForFieldType[tag.type];
-		full = getBytesVarint32(MAKE_TAG(tag.field, wireType));
-
-		switch (wireType) {
-		case WIRETYPE_VARINT:
-			full += getBytesVarint64((int64_t)value);
-			break;
-		case WIRETYPE_FIXED32:
-			full += std::string{ reinterpret_cast<const char*>(&value), 4 };
-			break;
-		case WIRETYPE_FIXED64:
-			full += std::string{ reinterpret_cast<const char*>(&value), 8 };
-			break;
-		}
-	}
-
-	template<typename T>
-	Field(unsigned field, unsigned type, T value) {
-		auto wireType = kWireTypeForFieldType[type];
-		tag = {field, (unsigned)wireType};
-		full = getBytesVarint32(MAKE_TAG(field, wireType));
-
-		switch (wireType) {
-			case WIRETYPE_VARINT:
-				full += getBytesVarint64( static_cast<uint64_t>(value) );
-				break;
-			case WIRETYPE_FIXED32:
-				full += std::string{ reinterpret_cast<const char*>(&value), 4 };
-				break;
-			case WIRETYPE_FIXED64:
-				full += std::string{ reinterpret_cast<const char*>(&value), 8 };
-				break;
-		}
-	}
-
-	Field(unsigned field, unsigned type, std::string value) {
-		auto wireType = kWireTypeForFieldType[type];
-		tag = {field, (unsigned)wireType};
-		full = getBytesVarint32(MAKE_TAG(field, wireType));
-		full += getBytesVarint32(value.size());
-		full += value;
-	}
-public:
-	float Float() {
-		return *reinterpret_cast<float*>((void*)value.data());
-	}
-	double Double() {
-		return *reinterpret_cast<double*>((void*)value.data());
-	}
-	int32_t Int32() {
-		size_t bytesRead;
-		return readVarUint64((void*)value.data(), bytesRead);
-	}
-	int64_t Int64() {
-		size_t bytesRead;
-		return readVarUint64((void*)value.data(), bytesRead);
-	}
-	uint32_t UInt32() {
-		size_t bytesRead;
-		return readVarUint32((void*)value.data(), bytesRead);
-	}
-	uint64_t UInt64() {
-		size_t bytesRead;
-		return readVarUint64((void*)value.data(), bytesRead);
-	}
-	uint32_t Fixed32() {
-		return *reinterpret_cast<uint32_t*>((void*)value.data());
-	}
-	uint64_t Fixed64() {
-		return *reinterpret_cast<uint64_t*>((void*)value.data());
-	}
-	int32_t SFixed32() {
-		return *reinterpret_cast<int32_t*>((void*)value.data());
-	}
-	int64_t SFixed64() {
-		return *reinterpret_cast<int64_t*>((void*)value.data());
-	}
-	bool Bool() {
-		size_t bytesRead;
-		return !!readVarUint32((void*)value.data(), bytesRead);
-	}
-	std::string String()
-	{
-		size_t bytesRead;
-		void* data = (void*)value.data();
-		auto length = readVarUint32((void*)value.data(), bytesRead);
-		auto value = std::string{ reinterpret_cast<const char*>((void*)((ptrdiff_t)data + bytesRead)), length };
-		return value;
-	}
-private:
-	static std::string getBytesVarint32(uint32_t value) {
-		uint8_t bytes[kMaxVarint32Bytes];
-		int size = 0;
-		while (value > 0x7F) {
-			bytes[size++] = (static_cast<uint8_t>(value) & 0x7F) | 0x80;
-			value >>= 7;
-		}
-		bytes[size++] = static_cast<uint8_t>(value) & 0x7F;
-		return std::string{ reinterpret_cast<const char*>(&bytes[0]), (size_t)size };
-	}
-	static std::string getBytesVarint64(uint64_t value) {
-		uint8_t bytes[kMaxVarintBytes];
-		int size = 0;
-		while (value > 0x7F) {
-			bytes[size++] = (static_cast<uint8_t>(value) & 0x7F) | 0x80;
-			value >>= 7;
-		}
-		bytes[size++] = static_cast<uint8_t>(value) & 0x7F;
-		return std::string{ reinterpret_cast<const char*>(&bytes[0]), (size_t)size };
-	}
+	constexpr static int kTagTypeBits = 3;
+	constexpr static uint32_t kTagTypeMask = (1 << kTagTypeBits) - 1;
+	constexpr static int kMaxVarintBytes = 10;
+	constexpr static int kMaxVarint32Bytes = 5;
 };
 
-static uint32_t readVarUint32(void* data, size_t& bytesRead)
+class ProtoWriter
+{
+public:
+	inline ProtoWriter();
+	inline ProtoWriter(size_t maxFields);
+	inline ProtoWriter(void* data, size_t size, size_t maxFields);
+	inline ProtoWriter(std::string dataStr, size_t maxFields);
+
+public:
+	/* Old method */
+	inline void add(Field field);
+	inline void replace(Field field);
+	inline void replace(Field field, uint32_t index);
+	inline void clear(unsigned fieldId);
+	inline bool has(unsigned fieldId);
+	inline Field get(unsigned fieldId);
+	inline std::vector<Field> getAll(unsigned fieldId);
+
+public:
+	/* New method */
+	inline void add(Tag tag, std::string value);
+	inline void replace(Tag tag, std::string value);
+	inline void replace(Tag tag, std::string value, uint32_t index);
+	inline void clear(Tag tag);
+	inline bool has(Tag tag);
+	inline Field get(Tag tag);
+	inline std::vector<Field> getAll(Tag tag);
+
+	template<typename T>
+	inline void add(Tag tag, T value);
+
+	template<typename T>
+	inline void replace(Tag tag, T value);
+
+	template<typename T>
+	inline void replace(Tag tag, T value, uint32_t index);
+
+
+	std::string serialize();
+	void print();
+
+private:
+	std::vector<std::vector<Field>> fields;
+};
+
+#pragma region Helper Functions
+std::string Field::getBytesVarint32(uint32_t value)
+{
+	uint8_t bytes[kMaxVarint32Bytes];
+	int size = 0;
+	while (value > 0x7F) {
+		bytes[size++] = (static_cast<uint8_t>(value) & 0x7F) | 0x80;
+		value >>= 7;
+	}
+	bytes[size++] = static_cast<uint8_t>(value) & 0x7F;
+	return std::string{ reinterpret_cast<const char*>(&bytes[0]), (size_t)size };
+}
+
+std::string Field::getBytesVarint64(uint64_t value)
+{
+	uint8_t bytes[kMaxVarintBytes];
+	int size = 0;
+	while (value > 0x7F) {
+		bytes[size++] = (static_cast<uint8_t>(value) & 0x7F) | 0x80;
+		value >>= 7;
+	}
+	bytes[size++] = static_cast<uint8_t>(value) & 0x7F;
+	return std::string{ reinterpret_cast<const char*>(&bytes[0]), (size_t)size };
+}
+
+uint32_t Field::readVarUint32(void* data, size_t& bytesRead)
 {
 	auto ptr = reinterpret_cast<const uint8_t*>(data);
 	auto value = 0u;
@@ -230,7 +204,7 @@ static uint32_t readVarUint32(void* data, size_t& bytesRead)
 	return value;
 }
 
-static uint64_t readVarUint64(void* data, size_t& bytesRead)
+uint64_t Field::readVarUint64(void* data, size_t& bytesRead)
 {
 	auto ptr = reinterpret_cast<const uint8_t*>(data);
 	auto value = 0ull;
@@ -247,7 +221,7 @@ static uint64_t readVarUint64(void* data, size_t& bytesRead)
 	return value;
 }
 
-static Field ReadField(void* data, size_t& bytesRead)
+Field Field::ReadField(void* data, size_t& bytesRead)
 {
 	unsigned field = *reinterpret_cast<uint16_t*>(data);
 	unsigned type = field & kTagTypeMask;
@@ -307,97 +281,281 @@ static Field ReadField(void* data, size_t& bytesRead)
 	return Field(field, type, value, full);
 }
 
+#pragma endregion 
 
-class ProtoWriter
+#pragma region Field Definition
+Field& Field::operator=(const Field& f) {
+	this->tag = f.tag;
+	this->value = f.value;
+	this->full = f.full;
+	return *this;
+}
+
+Field::Field(unsigned field, unsigned type, std::string value, std::string full) {
+	this->tag = { field, type };
+	this->value = value;
+	this->full = full;
+}
+
+template<typename T>
+Field::Field(Tag tag, T value) {
+	auto wireType = kWireTypeForFieldType[tag.type];
+	full = getBytesVarint32(MAKE_TAG(tag.field, wireType));
+
+	switch (wireType) {
+	case WIRETYPE_VARINT:
+		full += getBytesVarint64(static_cast<uint64_t>(value));
+		break;
+	case WIRETYPE_FIXED32:
+		full += std::string{ reinterpret_cast<const char*>(&value), 4 };
+		break;
+	case WIRETYPE_FIXED64:
+		full += std::string{ reinterpret_cast<const char*>(&value), 8 };
+		break;
+	}
+}
+
+template<typename T>
+Field::Field(unsigned field, unsigned type, T value) {
+	auto wireType = kWireTypeForFieldType[type];
+	tag = { field, (unsigned)wireType };
+	full = getBytesVarint32(MAKE_TAG(field, wireType));
+
+	switch (wireType) {
+	case WIRETYPE_VARINT:
+		full += getBytesVarint64(static_cast<uint64_t>(value));
+		break;
+	case WIRETYPE_FIXED32:
+		full += std::string{ reinterpret_cast<const char*>(&value), 4 };
+		break;
+	case WIRETYPE_FIXED64:
+		full += std::string{ reinterpret_cast<const char*>(&value), 8 };
+		break;
+	}
+}
+
+Field::Field(Tag tag, std::string value) {
+	auto wireType = kWireTypeForFieldType[tag.type];
+	full = getBytesVarint32(MAKE_TAG(tag.field, wireType));
+	full += getBytesVarint32(value.size());
+	full += value;
+}
+
+Field::Field(unsigned field, unsigned type, std::string value) {
+	auto wireType = kWireTypeForFieldType[type];
+	tag = { field, (unsigned)wireType };
+	full = getBytesVarint32(MAKE_TAG(field, wireType));
+	full += getBytesVarint32(value.size());
+	full += value;
+}
+
+
+float Field::Float() {
+	return *reinterpret_cast<float*>((void*)value.data());
+}
+double Field::Double() {
+	return *reinterpret_cast<double*>((void*)value.data());
+}
+int32_t Field::Int32() {
+	size_t bytesRead;
+	return readVarUint64((void*)value.data(), bytesRead);
+}
+int64_t Field::Int64() {
+	size_t bytesRead;
+	return readVarUint64((void*)value.data(), bytesRead);
+}
+uint32_t Field::UInt32() {
+	size_t bytesRead;
+	return readVarUint32((void*)value.data(), bytesRead);
+}
+uint64_t Field::UInt64() {
+	size_t bytesRead;
+	return readVarUint64((void*)value.data(), bytesRead);
+}
+uint32_t Field::Fixed32() {
+	return *reinterpret_cast<uint32_t*>((void*)value.data());
+}
+uint64_t Field::Fixed64() {
+	return *reinterpret_cast<uint64_t*>((void*)value.data());
+}
+int32_t Field::SFixed32() {
+	return *reinterpret_cast<int32_t*>((void*)value.data());
+}
+int64_t Field::SFixed64() {
+	return *reinterpret_cast<int64_t*>((void*)value.data());
+}
+bool Field::Bool() {
+	size_t bytesRead;
+	return !!readVarUint32((void*)value.data(), bytesRead);
+}
+
+std::string Field::String()
 {
-	std::vector<std::vector<Field>> fields;
-public:
-	ProtoWriter() {}
-	ProtoWriter(size_t maxFields) {
-		size_t vector_size = maxFields + 1;
-		fields.resize(vector_size);
-		fields.reserve(vector_size);
+	size_t bytesRead;
+	void* data = (void*)value.data();
+	auto length = readVarUint32((void*)value.data(), bytesRead);
+	auto value = std::string{ reinterpret_cast<const char*>((void*)((ptrdiff_t)data + bytesRead)), length };
+	return value;
+}
+
+#pragma endregion
+
+#pragma region ProtoWriter Definition
+ProtoWriter::ProtoWriter()
+{
+	
+}
+
+ProtoWriter::ProtoWriter(size_t maxFields)
+{
+	size_t vector_size = maxFields + 1;
+	fields.resize(vector_size);
+	fields.reserve(vector_size);
+}
+
+ProtoWriter::ProtoWriter(void* data, size_t size, size_t maxFields) : ProtoWriter(maxFields)
+{
+	size_t vector_size = maxFields + 1,
+		pos = 0,
+		bytesRead;
+
+	if (data == nullptr)
+		return;
+	// parse packet
+	while (pos < size) {
+		auto field = Field::ReadField((void*)((ptrdiff_t)data + pos), bytesRead);
+		if (!bytesRead) break;
+
+		auto index = field.tag.field;
+		if (index >= vector_size) throw("fields range error: field[%i]", index);
+		fields[index].push_back(field);
+		pos += bytesRead;
 	}
+}
 
-	ProtoWriter(void* data, size_t size, size_t maxFields)
-		: ProtoWriter(maxFields)
-	{
-		size_t vector_size = maxFields + 1,
-			pos = 0,
-			bytesRead;
+ProtoWriter::ProtoWriter(std::string dataStr, size_t maxFields) : ProtoWriter((void*)dataStr.data(), dataStr.size(), maxFields)
+{
+	
+}
 
-		if (data == nullptr)
-			return;
-		// parse packet
-		while (pos < size) {
-			auto field = ReadField((void*)((ptrdiff_t)data + pos), bytesRead);
-			if (!bytesRead) break;
-
-			auto index = field.tag.field;
-			if (index >= vector_size) throw("fields range error: field[%i]", index);
-			fields[index].push_back(field);
-			pos += bytesRead;
+std::string ProtoWriter::serialize()
+{
+	std::string result;
+	for (auto& f0 : fields) {
+		for (auto& f1 : f0) {
+			result += f1.full;
 		}
 	}
+	return result;
+}
 
-	ProtoWriter(std::string dataStr, size_t maxFields)
-		: ProtoWriter((void*)dataStr.data(), dataStr.size(), maxFields) {}
-
-	std::string serialize() {
-		std::string result;
-		for (auto& f0 : fields) {
-			for (auto& f1 : f0) {
-				result += f1.full;
-			}
+void ProtoWriter::print()
+{
+	auto data = serialize();
+	void* mem = (void*)data.data();
+	size_t size = data.size();
+	int j = 0;
+	for (int i = 0; i <= size; ++i) {
+		printf("%.2X ", *(unsigned char*)((uintptr_t)mem + i));
+		j++;
+		if (j == 16)
+		{
+			j = 0;
+			printf("\n");
 		}
-		return result;
 	}
+	printf("\n");
+}
 
-	void print() {
-		auto data = serialize();
-		void* mem = (void*)data.data();
-		size_t size = data.size();
-		int j = 0;
-		for (int i = 0; i <= size; ++i) {
-			printf("%.2X ", *(unsigned char*)((uintptr_t)mem + i));
-			j++;
-			if (j == 16)
-			{
-				j = 0;
-				printf("\n");
-			}
-		}
-		printf("\n");
-	}
+void ProtoWriter::add(Field field)
+{
+	fields[field.tag.field].push_back(field);
+}
 
-	void add(Field field) {
-		fields[field.tag.field].push_back(field);
-	}
+void ProtoWriter::replace(Field field)
+{
+	fields[field.tag.field].clear();
+	fields[field.tag.field].push_back(field);
+}
 
-	void replace(Field field) {
-		fields[field.tag.field].clear();
-		fields[field.tag.field].push_back(field);
-	}
+void ProtoWriter::replace(Field field, uint32_t index)
+{
+	fields[field.tag.field][index] = field;
+}
 
-	void replace(Field field, uint32_t index) {
-		fields[field.tag.field][index] = field;
-	}
+void ProtoWriter::clear(unsigned fieldId)
+{
+	return fields[fieldId].clear();
+}
 
-	void clear(unsigned fieldId) {
-		return fields[fieldId].clear();
-	}
+bool ProtoWriter::has(unsigned fieldId)
+{
+	return fields[fieldId].size() > 0;
+}
 
-	bool has(unsigned fieldId) {
-		return fields[fieldId].size() > 0;
-	}
+Field ProtoWriter::get(unsigned fieldId)
+{
+	return fields[fieldId][0];
+}
 
-	Field get(unsigned fieldId)
-	{
-		return fields[fieldId][0];
-	}
+std::vector<Field> ProtoWriter::getAll(unsigned fieldId)
+{
+	return fields[fieldId];
+}
 
-	std::vector<Field> getAll(unsigned fieldId)
-	{
-		return fields[fieldId];
-	}
-};
+template<typename T>
+void ProtoWriter::add(Tag tag, T value)
+{
+	fields[tag.field].push_back(Field(tag, value));
+}
+
+template<typename T>
+void ProtoWriter::replace(Tag tag, T value)
+{
+	fields[tag.field].clear();
+	fields[tag.field].push_back(Field(tag, value));
+}
+
+template<typename T>
+void ProtoWriter::replace(Tag tag, T value, uint32_t index)
+{
+	fields[tag.field][index] = Field(tag, value);
+}
+
+void ProtoWriter::add(Tag tag, std::string value)
+{
+	fields[tag.field].push_back(Field(tag, value));
+}
+
+void ProtoWriter::replace(Tag tag, std::string value)
+{
+	fields[tag.field].clear();
+	fields[tag.field].push_back(Field(tag, value));
+}
+
+void ProtoWriter::replace(Tag tag, std::string value, uint32_t index)
+{
+	fields[tag.field][index] = Field(tag, value);
+}
+
+void ProtoWriter::clear(Tag tag)
+{
+	return fields[tag.field].clear();
+}
+
+bool ProtoWriter::has(Tag tag)
+{
+	return fields[tag.field].size() > 0;
+}
+
+Field ProtoWriter::get(Tag tag)
+{
+	return fields[tag.field][0];
+}
+
+std::vector<Field> ProtoWriter::getAll(Tag tag)
+{
+	return fields[tag.field];
+}
+
+#pragma endregion
