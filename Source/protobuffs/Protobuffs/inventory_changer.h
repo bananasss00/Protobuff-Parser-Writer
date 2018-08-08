@@ -86,12 +86,12 @@ static std::string inventory_changer(void *pubDest, uint32_t *pcubMsgSize) {
 				apply_medals(object);
 				apply_music_kits(object);
 				add_all_items(object);
-				cache.replace(Field(CMsgSOCacheSubscribed::objects, TYPE_STRING, object.serialize()), i);
+				cache.replace(CMsgSOCacheSubscribed::objects, object.serialize(), i);
 			}
 			break;
 		}
 	}
-	msg.replace(Field(CMsgClientWelcome::outofdate_subscribed_caches, TYPE_STRING, cache.serialize()), 0);
+	msg.replace(CMsgClientWelcome::outofdate_subscribed_caches, cache.serialize(), 0);
 	
 	return msg.serialize();
 }
@@ -140,9 +140,9 @@ static void fix_null_inventory(ProtoWriter& cache)
 	{
 		int cache_size = objects.size();
 		ProtoWriter null_object(2);
-		null_object.add(Field(SubscribedType::type_id, TYPE_INT32, (int64_t)1));
+		null_object.add(SubscribedType::type_id, 1);
 
-		cache.add(Field(CMsgSOCacheSubscribed::objects, TYPE_STRING, null_object.serialize()));
+		cache.add(CMsgSOCacheSubscribed::objects, null_object.serialize());
 	}
 }
 
@@ -158,14 +158,14 @@ static void clear_equip_state(ProtoWriter& object)
 
 		// create NOT equiped state for item
 		ProtoWriter null_equipped_state(2);
-		null_equipped_state.replace(Field(CSOEconItemEquipped::new_class, TYPE_UINT32, (int64_t)0));
-		null_equipped_state.replace(Field(CSOEconItemEquipped::new_slot, TYPE_UINT32, (int64_t)0));
+		null_equipped_state.replace(CSOEconItemEquipped::new_class, 0);
+		null_equipped_state.replace(CSOEconItemEquipped::new_slot, 0);
 		// unequip all
 		auto equipped_state = item.getAll(CSOEconItem::equipped_state);
 		for (size_t k = 0; k < equipped_state.size(); k++)
-			item.replace(Field(CSOEconItem::equipped_state, TYPE_STRING, null_equipped_state.serialize()), k);
+			item.replace(CSOEconItem::equipped_state, null_equipped_state.serialize(), k);
 
-		object.replace(Field(SubscribedType::object_data, TYPE_STRING, item.serialize()), j);
+		object.replace(SubscribedType::object_data, item.serialize(), j);
 	}
 }
 
@@ -177,39 +177,39 @@ static void apply_medals(ProtoWriter& object)
 	uint32_t steamid = g_SteamUser->GetSteamID().GetAccountID();
 
 	ProtoWriter medal(19);
-	medal.add(Field(CSOEconItem::account_id, TYPE_UINT32, (int64_t)steamid));
-	medal.add(Field(CSOEconItem::origin, TYPE_UINT32, (int64_t)9));
-	medal.add(Field(CSOEconItem::rarity, TYPE_UINT32, (int64_t)6));
-	medal.add(Field(CSOEconItem::quantity, TYPE_UINT32, (int64_t)1));
-	medal.add(Field(CSOEconItem::quality, TYPE_UINT32, (int64_t)4));
-	medal.add(Field(CSOEconItem::level, TYPE_UINT32, (int64_t)1));
+	medal.add(CSOEconItem::account_id, steamid);
+	medal.add(CSOEconItem::origin, 9);
+	medal.add(CSOEconItem::rarity, 6);
+	medal.add(CSOEconItem::quantity, 1);
+	medal.add(CSOEconItem::quality, 4);
+	medal.add(CSOEconItem::level, 1);
 
 	ProtoWriter time_acquired_attribute(3);
-	time_acquired_attribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)222));
-	time_acquired_attribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, std::string("\x00\x00\x00\x00")));
-	medal.add(Field(CSOEconItem::attribute, TYPE_STRING, time_acquired_attribute.serialize()));
+	time_acquired_attribute.add(CSOEconItemAttribute::def_index, 222);
+	time_acquired_attribute.add(CSOEconItemAttribute::value_bytes, std::string("\x00\x00\x00\x00"));
+	medal.add(CSOEconItem::attribute, time_acquired_attribute.serialize());
 
 	int i = 10000;
 	for (uint32_t MedalIndex : packets_medals)
 	{
-		medal.add(Field(CSOEconItem::def_index, TYPE_UINT32, (int64_t)MedalIndex));
-		medal.add(Field(CSOEconItem::inventory, TYPE_UINT32, (int64_t)i));
-		medal.add(Field(CSOEconItem::id, TYPE_UINT64, (int64_t)i));
-		object.add(Field(SubscribedType::object_data, TYPE_STRING, medal.serialize()));
+		medal.add(CSOEconItem::def_index, MedalIndex);
+		medal.add(CSOEconItem::inventory, i);
+		medal.add(CSOEconItem::id, i);
+		object.add(SubscribedType::object_data, medal.serialize());
 		i++;
 	}
 
 	if (packets_equipped_medal)
 	{
-		medal.add(Field(CSOEconItem::def_index, TYPE_UINT32, (int64_t)packets_equipped_medal));
-		medal.add(Field(CSOEconItem::inventory, TYPE_UINT32, (int64_t)i));
-		medal.add(Field(CSOEconItem::id, TYPE_UINT64, (int64_t)i));
+		medal.add(CSOEconItem::def_index, packets_equipped_medal);
+		medal.add(CSOEconItem::inventory, i);
+		medal.add(CSOEconItem::id, i);
 
 		ProtoWriter equipped_state(2);
-		equipped_state.add(Field(CSOEconItemEquipped::new_class, TYPE_UINT32, (int64_t)0));
-		equipped_state.add(Field(CSOEconItemEquipped::new_slot, TYPE_UINT32, (int64_t)55));
-		medal.add(Field(CSOEconItem::equipped_state, TYPE_STRING, equipped_state.serialize()));
-		object.add(Field(SubscribedType::object_data, TYPE_STRING, medal.serialize()));
+		equipped_state.add(CSOEconItemEquipped::new_class, 0);
+		equipped_state.add(CSOEconItemEquipped::new_slot, 55);
+		medal.add(CSOEconItem::equipped_state, equipped_state.serialize());
+		object.add(SubscribedType::object_data, medal.serialize());
 	}
 }
 
@@ -218,19 +218,19 @@ static void apply_music_kits(ProtoWriter& object)
 	uint32_t steamid = g_SteamUser->GetSteamID().GetAccountID();
 
 	ProtoWriter music_kit(19);
-	music_kit.add(Field(CSOEconItem::account_id, TYPE_UINT32, (int64_t)steamid));
-	music_kit.add(Field(CSOEconItem::origin, TYPE_UINT32, (int64_t)9));
-	music_kit.add(Field(CSOEconItem::rarity, TYPE_UINT32, (int64_t)6));
-	music_kit.add(Field(CSOEconItem::quantity, TYPE_UINT32, (int64_t)1));
-	music_kit.add(Field(CSOEconItem::quality, TYPE_UINT32, (int64_t)4));
-	music_kit.add(Field(CSOEconItem::level, TYPE_UINT32, (int64_t)1));
-	music_kit.add(Field(CSOEconItem::flags, TYPE_UINT32, (int64_t)0));
-	music_kit.add(Field(CSOEconItem::def_index, TYPE_UINT32, (int64_t)1314));
+	music_kit.add(CSOEconItem::account_id, steamid);
+	music_kit.add(CSOEconItem::origin, 9);
+	music_kit.add(CSOEconItem::rarity, 6);
+	music_kit.add(CSOEconItem::quantity, 1);
+	music_kit.add(CSOEconItem::quality, 4);
+	music_kit.add(CSOEconItem::level, 1);
+	music_kit.add(CSOEconItem::flags, 0);
+	music_kit.add(CSOEconItem::def_index, 1314);
 
 	ProtoWriter time_acquired_attribute(3);
-	time_acquired_attribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)75));
-	time_acquired_attribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, std::string("\x00\x00\x00\x00")));
-	music_kit.add(Field(CSOEconItem::attribute, TYPE_STRING, time_acquired_attribute.serialize()));
+	time_acquired_attribute.add(CSOEconItemAttribute::def_index, 75);
+	time_acquired_attribute.add(CSOEconItemAttribute::value_bytes, std::string("\x00\x00\x00\x00"));
+	music_kit.add(CSOEconItem::attribute, time_acquired_attribute.serialize());
 
 	int selected_musickit_gui = 16;
 	for (int i = 3; i <= 38; ++i)
@@ -240,13 +240,13 @@ static void apply_music_kits(ProtoWriter& object)
 			uint32_t musikkit_id_value = i;
 			auto kit_id = std::string{ reinterpret_cast<const char*>((void*)&musikkit_id_value), 4 };
 			ProtoWriter musikkit_id(3);
-			musikkit_id.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)166));
-			musikkit_id.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, kit_id));
-			music_kit.add(Field(CSOEconItem::attribute, TYPE_STRING, musikkit_id.serialize()));
+			musikkit_id.add(CSOEconItemAttribute::def_index, 166);
+			musikkit_id.add(CSOEconItemAttribute::value_bytes, kit_id);
+			music_kit.add(CSOEconItem::attribute, musikkit_id.serialize());
 
-			music_kit.add(Field(CSOEconItem::inventory, TYPE_UINT32, (int64_t)(START_MUSICKIT_INDEX + i)));
-			music_kit.add(Field(CSOEconItem::id, TYPE_UINT64, (int64_t)(START_MUSICKIT_INDEX + i)));
-			object.add(Field(SubscribedType::object_data, TYPE_STRING, music_kit.serialize()));
+			music_kit.add(CSOEconItem::inventory, (START_MUSICKIT_INDEX + i));
+			music_kit.add(CSOEconItem::id, (START_MUSICKIT_INDEX + i));
+			object.add(SubscribedType::object_data, music_kit.serialize());
 		}
 	}
 
@@ -255,19 +255,19 @@ static void apply_music_kits(ProtoWriter& object)
 		uint32_t musikkit_id_value = selected_musickit_gui;
 		auto kit_id = std::string{ reinterpret_cast<const char*>((void*)&musikkit_id_value), 4 };
 		ProtoWriter musikkit_id(3);
-		musikkit_id.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)166));
-		musikkit_id.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, kit_id));
-		music_kit.add(Field(CSOEconItem::attribute, TYPE_STRING, musikkit_id.serialize()));
+		musikkit_id.add(CSOEconItemAttribute::def_index, 166);
+		musikkit_id.add(CSOEconItemAttribute::value_bytes, kit_id);
+		music_kit.add(CSOEconItem::attribute, musikkit_id.serialize());
 
-		music_kit.add(Field(CSOEconItem::inventory, TYPE_UINT32, (int64_t)(START_MUSICKIT_INDEX + selected_musickit_gui)));
-		music_kit.add(Field(CSOEconItem::id, TYPE_UINT64, (int64_t)(START_MUSICKIT_INDEX + selected_musickit_gui)));
+		music_kit.add(CSOEconItem::inventory, (START_MUSICKIT_INDEX + selected_musickit_gui));
+		music_kit.add(CSOEconItem::id, (START_MUSICKIT_INDEX + selected_musickit_gui));
 
 		ProtoWriter equipped_state(2);
-		equipped_state.add(Field(CSOEconItemEquipped::new_class, TYPE_UINT32, (int64_t)0));
-		equipped_state.add(Field(CSOEconItemEquipped::new_slot, TYPE_UINT32, (int64_t)54));
-		music_kit.add(Field(CSOEconItem::equipped_state, TYPE_STRING, equipped_state.serialize()));
+		equipped_state.add(CSOEconItemEquipped::new_class, 0);
+		equipped_state.add(CSOEconItemEquipped::new_slot, 54);
+		music_kit.add(CSOEconItem::equipped_state, equipped_state.serialize());
 
-		object.add(Field(SubscribedType::object_data, TYPE_STRING, music_kit.serialize()));
+		object.add(SubscribedType::object_data, music_kit.serialize());
 	}
 }
 
@@ -285,22 +285,22 @@ static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemInd
 	uint32_t steamid = g_SteamUser->GetSteamID().GetAccountID();
 
 	ProtoWriter item(19);
-	item.add(Field(CSOEconItem::id, TYPE_UINT64, (int64_t)(START_ITEM_INDEX + itemIndex)));
-	item.add(Field(CSOEconItem::account_id, TYPE_UINT32, (int64_t)steamid));
-	item.add(Field(CSOEconItem::def_index, TYPE_UINT32, (int64_t)itemIndex));
-	item.add(Field(CSOEconItem::inventory, TYPE_UINT32, (int64_t)(START_ITEM_INDEX + index)));
-	item.add(Field(CSOEconItem::origin, TYPE_UINT32, (int64_t)24));
-	item.add(Field(CSOEconItem::quantity, TYPE_UINT32, (int64_t)1));
-	item.add(Field(CSOEconItem::level, TYPE_UINT32, (int64_t)1));
-	item.add(Field(CSOEconItem::style, TYPE_UINT32, (int64_t)0));
-	item.add(Field(CSOEconItem::flags, TYPE_UINT32, (int64_t)0));
-	item.add(Field(CSOEconItem::in_use, TYPE_BOOL, (int64_t)true));
-	item.add(Field(CSOEconItem::original_id, TYPE_UINT64, (int64_t)0));
-	item.add(Field(CSOEconItem::rarity, TYPE_UINT32, (int64_t)rarity));
-	item.add(Field(CSOEconItem::quality, TYPE_UINT32, (int64_t)0));
+	item.add(CSOEconItem::id, (START_ITEM_INDEX + itemIndex));
+	item.add(CSOEconItem::account_id, steamid);
+	item.add(CSOEconItem::def_index, itemIndex);
+	item.add(CSOEconItem::inventory, (START_ITEM_INDEX + index));
+	item.add(CSOEconItem::origin, 24);
+	item.add(CSOEconItem::quantity, 1);
+	item.add(CSOEconItem::level, 1);
+	item.add(CSOEconItem::style, 0);
+	item.add(CSOEconItem::flags, 0);
+	item.add(CSOEconItem::in_use, true);
+	item.add(CSOEconItem::original_id, 0);
+	item.add(CSOEconItem::rarity, rarity);
+	item.add(CSOEconItem::quality, 0);
 
 	if (name.size() > 0)
-		item.add(Field(CSOEconItem::custom_name, TYPE_STRING, name));
+		item.add(CSOEconItem::custom_name, name);
 
 	// Equip new skins
 	{
@@ -308,72 +308,72 @@ static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemInd
 
 		if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_TERRORIST) {
 			ProtoWriter equipped_state(2);
-			equipped_state.add(Field(CSOEconItemEquipped::new_class, TYPE_UINT32, (int64_t)TEAM_TERRORIST));
-			equipped_state.add(Field(CSOEconItemEquipped::new_slot, TYPE_UINT32, (int64_t)GetSlotID(itemIndex)));
-			item.add(Field(CSOEconItem::equipped_state, TYPE_STRING, equipped_state.serialize()));
+			equipped_state.add(CSOEconItemEquipped::new_class, TEAM_TERRORIST);
+			equipped_state.add(CSOEconItemEquipped::new_slot, GetSlotID(itemIndex));
+			item.add(CSOEconItem::equipped_state, equipped_state.serialize());
 		}
 		if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_COUNTER_TERRORIST) {
 			ProtoWriter equipped_state(2);
-			equipped_state.add(Field(CSOEconItemEquipped::new_class, TYPE_UINT32, (int64_t)TEAM_COUNTER_TERRORIST));
-			equipped_state.add(Field(CSOEconItemEquipped::new_slot, TYPE_UINT32, (int64_t)GetSlotID(itemIndex)));
-			item.add(Field(CSOEconItem::equipped_state, TYPE_STRING, equipped_state.serialize()));
+			equipped_state.add(CSOEconItemEquipped::new_class, TEAM_COUNTER_TERRORIST);
+			equipped_state.add(CSOEconItemEquipped::new_slot, GetSlotID(itemIndex));
+			item.add(CSOEconItem::equipped_state, equipped_state.serialize());
 		}
 	}
 	// Paint Kit
 	float _PaintKitAttributeValue = (float)paintKit;
 	auto PaintKitAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_PaintKitAttributeValue), 4 };
 	ProtoWriter PaintKitAttribute(3);
-	PaintKitAttribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)6));
-	PaintKitAttribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, PaintKitAttributeValue));
-	item.add(Field(CSOEconItem::attribute, TYPE_STRING, PaintKitAttribute.serialize()));
+	PaintKitAttribute.add(CSOEconItemAttribute::def_index, 6);
+	PaintKitAttribute.add(CSOEconItemAttribute::value_bytes, PaintKitAttributeValue);
+	item.add(CSOEconItem::attribute, PaintKitAttribute.serialize());
 
 	// Paint Seed
 	float _SeedAttributeValue = (float)seed;
 	auto SeedAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_SeedAttributeValue), 4 };
 	ProtoWriter SeedAttribute(3);
-	SeedAttribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)7));
-	SeedAttribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, SeedAttributeValue));
-	item.add(Field(CSOEconItem::attribute, TYPE_STRING, SeedAttribute.serialize()));
+	SeedAttribute.add(CSOEconItemAttribute::def_index, 7);
+	SeedAttribute.add(CSOEconItemAttribute::value_bytes, SeedAttributeValue);
+	item.add(CSOEconItem::attribute, SeedAttribute.serialize());
 
 	// Paint Wear
 	float _WearAttributeValue = wear;
 	auto WearAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_WearAttributeValue), 4 };
 	ProtoWriter WearAttribute(3);
-	WearAttribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)8));
-	WearAttribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, WearAttributeValue));
-	item.add(Field(CSOEconItem::attribute, TYPE_STRING, WearAttribute.serialize()));
+	WearAttribute.add(CSOEconItemAttribute::def_index, 8);
+	WearAttribute.add(CSOEconItemAttribute::value_bytes, WearAttributeValue);
+	item.add(CSOEconItem::attribute, WearAttribute.serialize());
 
 	// Stickers
 	for (int j = 0; j < 4; j++)
 	{
 		// Sticker Kit
 		ProtoWriter StickerKitAttribute(3);
-		StickerKitAttribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)(113 + 4 * j)));
-		StickerKitAttribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, std::string("\x00\x00\x00\x00")));
-		item.add(Field(CSOEconItem::attribute, TYPE_STRING, StickerKitAttribute.serialize()));
+		StickerKitAttribute.add(CSOEconItemAttribute::def_index, (113 + 4 * j));
+		StickerKitAttribute.add(CSOEconItemAttribute::value_bytes, std::string("\x00\x00\x00\x00"));
+		item.add(CSOEconItem::attribute, StickerKitAttribute.serialize());
 		// Sticker Wear
 		float _StickerWearAttributeValue = 0.001f;
 		auto StickerWearAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_StickerWearAttributeValue), 4 };
 		ProtoWriter StickerWearAttribute(3);
-		StickerWearAttribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)(114 + 4 * j)));
-		StickerWearAttribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, StickerWearAttributeValue));
-		item.add(Field(CSOEconItem::attribute, TYPE_STRING, StickerWearAttribute.serialize()));
+		StickerWearAttribute.add(CSOEconItemAttribute::def_index, (114 + 4 * j));
+		StickerWearAttribute.add(CSOEconItemAttribute::value_bytes, StickerWearAttributeValue);
+		item.add(CSOEconItem::attribute, StickerWearAttribute.serialize());
 		// Sticker Scale
 		float _StickerScaleAttributeValue = 1.f;
 		auto StickerScaleAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_StickerScaleAttributeValue), 4 };
 		ProtoWriter StickerScaleAttribute(3);
-		StickerScaleAttribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)(115 + 4 * j)));
-		StickerScaleAttribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, StickerScaleAttributeValue));
-		item.add(Field(CSOEconItem::attribute, TYPE_STRING, StickerScaleAttribute.serialize()));
+		StickerScaleAttribute.add(CSOEconItemAttribute::def_index, (115 + 4 * j));
+		StickerScaleAttribute.add(CSOEconItemAttribute::value_bytes, StickerScaleAttributeValue);
+		item.add(CSOEconItem::attribute, StickerScaleAttribute.serialize());
 		// Sticker Rotation
 		float _StickerRotationAttributeValue = 0.f;
 		auto StickerRotationAttributeValue = std::string{ reinterpret_cast<const char*>((void*)&_StickerRotationAttributeValue), 4 };
 		ProtoWriter StickerRotationAttribute(3);
-		StickerRotationAttribute.add(Field(CSOEconItemAttribute::def_index, TYPE_UINT32, (int64_t)(116 + 4 * j)));
-		StickerRotationAttribute.add(Field(CSOEconItemAttribute::value_bytes, TYPE_STRING, StickerRotationAttributeValue));
-		item.add(Field(CSOEconItem::attribute, TYPE_STRING, StickerRotationAttribute.serialize()));
+		StickerRotationAttribute.add(CSOEconItemAttribute::def_index, (116 + 4 * j));
+		StickerRotationAttribute.add(CSOEconItemAttribute::value_bytes, StickerRotationAttributeValue);
+		item.add(CSOEconItem::attribute, StickerRotationAttribute.serialize());
 	}
-	object.add(Field(SubscribedType::object_data, TYPE_STRING, item.serialize()));
+	object.add(SubscribedType::object_data, item.serialize());
 }
 
 static TeamID GetAvailableClassID(int definition_index)

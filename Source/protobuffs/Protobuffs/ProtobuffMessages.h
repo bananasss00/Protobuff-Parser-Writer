@@ -7,68 +7,70 @@
 #define k_EMsgGCCStrike15_v2_MatchmakingClient2GCHello 9109
 #define k_EMsgGCCStrike15_v2_MatchmakingGC2ClientHello 9110
 
+//FORMAT: constexpr static Tag field_name = {field_id, field_type};
+
 // ProfileChanger
 struct MatchmakingGC2ClientHello {
-	static const uint32_t commendation = 8;
-	static const uint32_t ranking = 7;
-	static const uint32_t player_level = 17;
+	constexpr static Tag ranking = {7, TYPE_STRING};
+	constexpr static Tag commendation = {8, TYPE_STRING};
+	constexpr static Tag player_level = {17, TYPE_INT32};
 };
 struct PlayerCommendationInfo {
-	static const uint32_t cmd_friendly = 1;
-	static const uint32_t cmd_teaching = 2;
-	static const uint32_t cmd_leader = 4;
+	constexpr static Tag cmd_friendly = {1, TYPE_UINT32};
+	constexpr static Tag cmd_teaching = {2, TYPE_UINT32};
+	constexpr static Tag cmd_leader = {4, TYPE_UINT32};
 };
 struct PlayerRankingInfo {
-	static const uint32_t rank_id = 2;
-	static const uint32_t wins = 3;
+	constexpr static Tag rank_id = {2, TYPE_UINT32};
+	constexpr static Tag wins = {3, TYPE_UINT32};
 };
 
 // InvChanger
 struct SubscribedType {
-	static const uint32_t type_id = 1;
-	static const uint32_t object_data = 2;
+	constexpr static Tag type_id = {1, TYPE_INT32};
+	constexpr static Tag object_data = {2, TYPE_STRING};
 };
 
 struct CMsgSOCacheSubscribed {
-	static const uint32_t objects = 2;
+	constexpr static Tag objects = {2, TYPE_STRING};
 };
 
 struct CMsgClientWelcome {
-	static const uint32_t outofdate_subscribed_caches = 3;
+	constexpr static Tag outofdate_subscribed_caches = {3, TYPE_STRING};
 };
 
 struct CSOEconItem {
-	static const uint32_t id = 1;
-	static const uint32_t account_id = 2;
-	static const uint32_t inventory = 3;
-	static const uint32_t def_index = 4;
-	static const uint32_t quantity = 5;
-	static const uint32_t level = 6;
-	static const uint32_t quality = 7;
-	static const uint32_t flags = 8;
-	static const uint32_t origin = 9;
-	static const uint32_t custom_name = 10;
-	static const uint32_t attribute = 12;
-	static const uint32_t in_use = 14;
-	static const uint32_t style = 15;
-	static const uint32_t original_id = 16;
-	static const uint32_t equipped_state = 18;
-	static const uint32_t rarity = 19;
+	constexpr static Tag id = {1, TYPE_UINT64};
+	constexpr static Tag account_id = {2, TYPE_UINT32};
+	constexpr static Tag inventory = {3, TYPE_UINT32};
+	constexpr static Tag def_index = {4, TYPE_UINT32};
+	constexpr static Tag quantity = {5, TYPE_UINT32};
+	constexpr static Tag level = {6, TYPE_UINT32};
+	constexpr static Tag quality = {7, TYPE_UINT32};
+	constexpr static Tag flags = {8, TYPE_UINT32};
+	constexpr static Tag origin = {9, TYPE_UINT32};
+	constexpr static Tag custom_name = {10, TYPE_STRING};
+	constexpr static Tag attribute = {12, TYPE_STRING};
+	constexpr static Tag in_use = {14, TYPE_BOOL};
+	constexpr static Tag style = {15, TYPE_UINT32};
+	constexpr static Tag original_id = {16, TYPE_UINT64};
+	constexpr static Tag equipped_state = {18, TYPE_STRING};
+	constexpr static Tag rarity = {19, TYPE_UINT32};
 };
 
 struct CMsgAdjustItemEquippedState {
-	static const uint32_t item_id = 1;
-	static const uint32_t new_class = 2;
-	static const uint32_t new_slot = 3;
+	constexpr static Tag item_id = {1, TYPE_UINT64};
+	constexpr static Tag new_class = {2, TYPE_UINT32};
+	constexpr static Tag new_slot = {3, TYPE_UINT32};
 };
 
 struct CSOEconItemEquipped {
-	static const uint32_t new_class = 1;
-	static const uint32_t new_slot = 2;
+	constexpr static Tag new_class = {1, TYPE_UINT32};
+	constexpr static Tag new_slot = {2, TYPE_UINT32};
 };
 
 struct CSOEconItemAttribute {
-	static const uint32_t def_index = 1;
-	static const uint32_t value = 2;
-	static const uint32_t value_bytes = 3;
+	constexpr static Tag def_index = {1, TYPE_UINT32};
+	constexpr static Tag value = {2, TYPE_UINT32};
+	constexpr static Tag value_bytes = {3, TYPE_STRING};
 };
