@@ -25,7 +25,9 @@
 	void replace_##_name_(std::string v) { this->replace(_name_, v); } \
 	void replace_##_name_(std::string v, uint32_t index) { this->replace(_name_, v, index); } \
 	template<typename T> void replace_##_name_(T v) { this->replace(_name_, v); } \
-	template<typename T> void replace_##_name_(T v, uint32_t index) { this->replace(_name_, v, index); }
+	template<typename T> void replace_##_name_(T v, uint32_t index) { this->replace(_name_, v, index); } \
+	template<class T> T get_##_name_() { return std::move( T(this->get(_name_).String()) ); }
+	
 
 struct Tag
 {

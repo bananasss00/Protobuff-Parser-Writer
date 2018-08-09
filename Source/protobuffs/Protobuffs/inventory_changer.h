@@ -123,25 +123,25 @@ static std::string inventory_changer(void *pubDest, uint32_t *pcubMsgSize) {
 
 static bool inventory_changer_presend(void* pubData, uint32_t &cubData)
 {
-	ProtoWriter msg((void*)((DWORD)pubData + 8), cubData - 8, CMsgAdjustItemEquippedState::MAX_FIELD);
+	CMsgAdjustItemEquippedState msg((void*)((DWORD)pubData + 8), cubData - 8);
 	// Change music kit check
-	if (msg.has(CMsgAdjustItemEquippedState::item_id)
-		&& msg.get(CMsgAdjustItemEquippedState::new_class).UInt32() == 0
-		|| msg.get(CMsgAdjustItemEquippedState::new_slot).UInt32() == 54)
+	if (msg.has_item_id()
+		&& msg.get_new_class().UInt32() == 0
+		|| msg.get_new_slot().UInt32() == 54)
 	{
-		auto ItemIndex = msg.get(CMsgAdjustItemEquippedState::item_id).UInt64() - START_MUSICKIT_INDEX;
+		auto ItemIndex = msg.get_item_id().UInt64() - START_MUSICKIT_INDEX;
 
 		if (ItemIndex > 38 || ItemIndex < 3)
 			return true;
 
-		/*g_Options.skins_packets_musci_kit*/auto skins_packets_musci_kit = msg.get(CMsgAdjustItemEquippedState::new_slot).UInt32() == 0xFFFF ? 0 : ItemIndex - 2;
+		/*g_Options.skins_packets_musci_kit*/auto skins_packets_musci_kit = msg.get_new_slot().UInt32() == 0xFFFF ? 0 : ItemIndex - 2;
 
 		return false;
 	}
 	// Change weapon skin check
-	if (!msg.has(CMsgAdjustItemEquippedState::item_id)
-		|| !msg.has(CMsgAdjustItemEquippedState::new_class)
-		|| !msg.has(CMsgAdjustItemEquippedState::new_slot))
+	if (!msg.has_item_id()
+		|| !msg.has_new_class()
+		|| !msg.has_new_slot())
 		return true;
 
 	return false;
