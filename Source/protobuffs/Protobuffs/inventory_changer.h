@@ -1,6 +1,7 @@
 #pragma once
 #include "ProtoParse.h"
 #include "ProtobuffMessages.h"
+#include <ctime>
 
 struct wskin
 {
@@ -65,6 +66,23 @@ inline std::string get_4bytes(T value)
 	return std::string{ reinterpret_cast<const char*>( reinterpret_cast<void*>(&value) ), 4 };
 }
 
+template<typename T>
+inline std::string make_econ_item_attribute(int def_index, T value)
+{
+	ProtoWriter attribute(CSOEconItemAttribute::MAX_FIELD);
+	attribute.add(CSOEconItemAttribute::def_index, def_index);
+	attribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(value));
+	return attribute.serialize();
+}
+
+inline std::string make_equipped_state(int team, int slot)
+{
+	ProtoWriter equipped_state(CSOEconItemEquipped::MAX_FIELD);
+	equipped_state.add(CSOEconItemEquipped::new_class, team);
+	equipped_state.add(CSOEconItemEquipped::new_slot, slot);
+	return equipped_state.serialize();
+}
+
 static std::string inventory_changer(void *pubDest, uint32_t *pcubMsgSize) {
 	ProtoWriter msg((void*)((DWORD)pubDest + 8), *pcubMsgSize - 8, CMsgClientWelcome::MAX_FIELD);
 	if (msg.getAll(CMsgClientWelcome::outofdate_subscribed_caches).empty())
@@ -111,12 +129,12 @@ static bool inventory_changer_presend(void* pubData, uint32_t &cubData)
 		&& msg.get(CMsgAdjustItemEquippedState::new_class).UInt32() == 0
 		|| msg.get(CMsgAdjustItemEquippedState::new_slot).UInt32() == 54)
 	{
-		int ItemIndex = /*(uint32_t)*/msg.get(CMsgAdjustItemEquippedState::item_id).UInt64() - START_MUSICKIT_INDEX;
+		auto ItemIndex = msg.get(CMsgAdjustItemEquippedState::item_id).UInt64() - START_MUSICKIT_INDEX;
 
 		if (ItemIndex > 38 || ItemIndex < 3)
 			return true;
 
-		/*g_Options.skins_packets_musci_kit*/auto skins_packets_musci_kit = msg.get(CMsgAdjustItemEquippedState::new_slot).UInt32() == 65535 ? 0 : ItemIndex - 2;
+		/*g_Options.skins_packets_musci_kit*/auto skins_packets_musci_kit = msg.get(CMsgAdjustItemEquippedState::new_slot).UInt32() == 0xFFFF ? 0 : ItemIndex - 2;
 
 		return false;
 	}
@@ -164,13 +182,12 @@ static void clear_equip_state(ProtoWriter& object)
 			continue;
 
 		// create NOT equiped state for item
-		ProtoWriter null_equipped_state(CSOEconItemEquipped::MAX_FIELD);
-		null_equipped_state.replace(CSOEconItemEquipped::new_class, 0);
-		null_equipped_state.replace(CSOEconItemEquipped::new_slot, 0);
+		auto null_equipped_state = make_equipped_state(0, 0);
+		
 		// unequip all
 		auto equipped_state = item.getAll(CSOEconItem::equipped_state);
 		for (size_t k = 0; k < equipped_state.size(); k++)
-			item.replace(CSOEconItem::equipped_state, null_equipped_state.serialize(), k);
+			item.replace(CSOEconItem::equipped_state, null_equipped_state, k);
 
 		object.replace(SubscribedType::object_data, item.serialize(), j);
 	}
@@ -191,10 +208,8 @@ static void apply_medals(ProtoWriter& object)
 	medal.add(CSOEconItem::quality, 4);
 	medal.add(CSOEconItem::level, 1);
 
-	ProtoWriter time_acquired_attribute(CSOEconItemAttribute::MAX_FIELD);
-	time_acquired_attribute.add(CSOEconItemAttribute::def_index, 222);
-	time_acquired_attribute.add(CSOEconItemAttribute::value_bytes, std::string("\x00\x00\x00\x00"));
-	medal.add(CSOEconItem::attribute, time_acquired_attribute.serialize());
+	// Time acquired attribute
+	medal.add(CSOEconItem::attribute, make_econ_item_attribute(222, (uint32_t)std::time(0)));
 
 	int i = 10000;
 	for (uint32_t MedalIndex : packets_medals)
@@ -211,11 +226,7 @@ static void apply_medals(ProtoWriter& object)
 		medal.add(CSOEconItem::def_index, packets_equipped_medal);
 		medal.add(CSOEconItem::inventory, i);
 		medal.add(CSOEconItem::id, i);
-
-		ProtoWriter equipped_state(CSOEconItemEquipped::MAX_FIELD);
-		equipped_state.add(CSOEconItemEquipped::new_class, 0);
-		equipped_state.add(CSOEconItemEquipped::new_slot, 55);
-		medal.add(CSOEconItem::equipped_state, equipped_state.serialize());
+		medal.add(CSOEconItem::equipped_state, make_equipped_state(0, 55));
 		object.add(SubscribedType::object_data, medal.serialize());
 	}
 }
@@ -234,21 +245,15 @@ static void apply_music_kits(ProtoWriter& object)
 	music_kit.add(CSOEconItem::flags, 0);
 	music_kit.add(CSOEconItem::def_index, 1314);
 
-	ProtoWriter time_acquired_attribute(CSOEconItemAttribute::MAX_FIELD);
-	time_acquired_attribute.add(CSOEconItemAttribute::def_index, 75);
-	time_acquired_attribute.add(CSOEconItemAttribute::value_bytes, std::string("\x00\x00\x00\x00"));
-	music_kit.add(CSOEconItem::attribute, time_acquired_attribute.serialize());
+	// Time acquired attribute
+	music_kit.add(CSOEconItem::attribute, make_econ_item_attribute(75, (uint32_t)std::time(0)));
 
 	int selected_musickit_gui = 16;
 	for (int i = 3; i <= 38; ++i)
 	{
 		if (selected_musickit_gui != i)
 		{
-			ProtoWriter musikkit_id(CSOEconItemAttribute::MAX_FIELD);
-			musikkit_id.add(CSOEconItemAttribute::def_index, 166);
-			musikkit_id.add(CSOEconItemAttribute::value_bytes, get_4bytes(i)); //set kit id
-			music_kit.add(CSOEconItem::attribute, musikkit_id.serialize());
-
+			music_kit.add(CSOEconItem::attribute, make_econ_item_attribute(166, i)); // Music kit id
 			music_kit.add(CSOEconItem::inventory, (START_MUSICKIT_INDEX + i));
 			music_kit.add(CSOEconItem::id, (START_MUSICKIT_INDEX + i));
 			object.add(SubscribedType::object_data, music_kit.serialize());
@@ -257,19 +262,10 @@ static void apply_music_kits(ProtoWriter& object)
 
 	if (selected_musickit_gui)
 	{
-		ProtoWriter musikkit_id(CSOEconItemAttribute::MAX_FIELD);
-		musikkit_id.add(CSOEconItemAttribute::def_index, 166);
-		musikkit_id.add(CSOEconItemAttribute::value_bytes, get_4bytes(selected_musickit_gui)); //set kit id
-		music_kit.add(CSOEconItem::attribute, musikkit_id.serialize());
-
+		music_kit.add(CSOEconItem::attribute, make_econ_item_attribute(166, selected_musickit_gui)); // Music kit id
 		music_kit.add(CSOEconItem::inventory, (START_MUSICKIT_INDEX + selected_musickit_gui));
 		music_kit.add(CSOEconItem::id, (START_MUSICKIT_INDEX + selected_musickit_gui));
-
-		ProtoWriter equipped_state(CSOEconItemEquipped::MAX_FIELD);
-		equipped_state.add(CSOEconItemEquipped::new_class, 0);
-		equipped_state.add(CSOEconItemEquipped::new_slot, 54);
-		music_kit.add(CSOEconItem::equipped_state, equipped_state.serialize());
-
+		music_kit.add(CSOEconItem::equipped_state, make_equipped_state(0, 54));
 		object.add(SubscribedType::object_data, music_kit.serialize());
 	}
 }
@@ -285,22 +281,6 @@ static void add_all_items(ProtoWriter& object)
 
 static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemIndex, int rarity, int paintKit, int seed, float wear, std::string name)
 {
-	const auto& make_econ_item_attribute = [](int def_index, std::string _4bytes)
-	{
-		ProtoWriter attribute(CSOEconItemAttribute::MAX_FIELD);
-		attribute.add(CSOEconItemAttribute::def_index, def_index);
-		attribute.add(CSOEconItemAttribute::value_bytes, _4bytes);
-		return attribute.serialize();
-	};
-
-	const auto& make_equipped_state = [](int team, int defIndex)
-	{
-		ProtoWriter equipped_state(CSOEconItemEquipped::MAX_FIELD);
-		equipped_state.add(CSOEconItemEquipped::new_class, team);
-		equipped_state.add(CSOEconItemEquipped::new_slot, GetSlotID(defIndex));
-		return equipped_state.serialize();
-	};
-
 	uint32_t steamid = g_SteamUser->GetSteamID().GetAccountID();
 
 	ProtoWriter item(CSOEconItem::MAX_FIELD);
@@ -325,24 +305,27 @@ static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemInd
 	TeamID avalTeam = GetAvailableClassID(itemIndex);
 
 	if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_TERRORIST) {
-		item.add(CSOEconItem::equipped_state, make_equipped_state(TEAM_TERRORIST, itemIndex));
+		item.add(CSOEconItem::equipped_state, make_equipped_state(TEAM_TERRORIST, GetSlotID(itemIndex)));
 	}
 	if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_COUNTER_TERRORIST) {
-		item.add(CSOEconItem::equipped_state, make_equipped_state(TEAM_COUNTER_TERRORIST, itemIndex));
+		item.add(CSOEconItem::equipped_state, make_equipped_state(TEAM_COUNTER_TERRORIST, GetSlotID(itemIndex)));
 	}
 
 	// Add CSOEconItemAttribute's
-	item.add(CSOEconItem::attribute, make_econ_item_attribute(6, get_4bytes((float)paintKit)));
-	item.add(CSOEconItem::attribute, make_econ_item_attribute(7, get_4bytes((float)seed)));
-	item.add(CSOEconItem::attribute, make_econ_item_attribute(8, get_4bytes((float)wear)));
+	item.add(CSOEconItem::attribute, make_econ_item_attribute(6, float(paintKit)));
+	item.add(CSOEconItem::attribute, make_econ_item_attribute(7, float(seed)));
+	item.add(CSOEconItem::attribute, make_econ_item_attribute(8, float(wear)));
+
+	// Time acquired attribute
+	item.add(CSOEconItem::attribute, make_econ_item_attribute(180, (uint32_t)std::time(0)));
 
 	// Stickers
 	for (int j = 0; j < 4; j++)
 	{
-		item.add(CSOEconItem::attribute, make_econ_item_attribute(113 + 4 * j, get_4bytes((uint32_t)289 + j))); // Sticker Kit
-		item.add(CSOEconItem::attribute, make_econ_item_attribute(114 + 4 * j, get_4bytes((float)0.001f)));     // Sticker Wear
-		item.add(CSOEconItem::attribute, make_econ_item_attribute(115 + 4 * j, get_4bytes((float)1.f)));        // Sticker Scale
-		item.add(CSOEconItem::attribute, make_econ_item_attribute(116 + 4 * j, get_4bytes((float)0.f)));        // Sticker Rotation
+		item.add(CSOEconItem::attribute, make_econ_item_attribute(113 + 4 * j, uint32_t(289 + j))); // Sticker Kit
+		item.add(CSOEconItem::attribute, make_econ_item_attribute(114 + 4 * j, float(0.001f)));     // Sticker Wear
+		item.add(CSOEconItem::attribute, make_econ_item_attribute(115 + 4 * j, float(1.f)));        // Sticker Scale
+		item.add(CSOEconItem::attribute, make_econ_item_attribute(116 + 4 * j, float(0.f)));        // Sticker Rotation
 	}
 
 	object.add(SubscribedType::object_data, item.serialize());
