@@ -6,6 +6,30 @@
 
 #define MAKE_TAG(FIELD_NUMBER, TYPE) static_cast<uint32_t>(((FIELD_NUMBER) << kTagTypeBits) | (TYPE))
 
+#define make_struct(name, _size) \
+	struct name : ProtoWriter { \
+		constexpr static size_t MAX_FIELD = _size; \
+		name(void* data, size_t size) : ProtoWriter(data, size, MAX_FIELD) {}; \
+		name(std::string data)        : ProtoWriter(data, MAX_FIELD) {};
+
+#define make_struct_constructors(size) \
+	
+
+
+#define make_field(name, id, type) \
+	constexpr static Tag name = { id, type }; \
+	void clear_##name() { this->clear(name); } \
+	bool has_##name() { return this->has(name); } \
+	Field get_##name() { return this->get(name); } \
+	std::vector<Field> getAll_##name() { return this->getAll(name); } \
+	\
+	void add_##name(std::string value) { this->add(name, value); } \
+	template<typename T> void add_##name(T value) { this->add(name, value); } \
+	void replace_##name(std::string value) { this->replace(name, value); } \
+	void replace_##name(std::string value, uint32_t index) { this->replace(name, value, index); } \
+	template<typename T> void replace_##name(T value) { this->replace(name, value); } \
+	template<typename T> void replace_##name(T value, uint32_t index) { this->replace(name, value, index); }
+
 struct Tag
 {
 	unsigned field;
@@ -492,6 +516,8 @@ bool ProtoWriter::has(unsigned fieldId)
 
 Field ProtoWriter::get(unsigned fieldId)
 {
+	if (fields[fieldId].empty())
+		return Field();
 	return fields[fieldId][0];
 }
 
@@ -547,6 +573,8 @@ bool ProtoWriter::has(Tag tag)
 
 Field ProtoWriter::get(Tag tag)
 {
+	if (fields[tag.field].empty())
+		return Field();
 	return fields[tag.field][0];
 }
 

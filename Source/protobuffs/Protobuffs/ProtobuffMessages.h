@@ -15,22 +15,19 @@ struct CMsgClientHello {
 };
 
 // ProfileChanger
-struct MatchmakingGC2ClientHello {
-	constexpr static size_t MAX_FIELD = 20;
-	constexpr static Tag ranking = {7, TYPE_STRING};
-	constexpr static Tag commendation = {8, TYPE_STRING};
-	constexpr static Tag player_level = {17, TYPE_INT32};
+make_struct(MatchmakingGC2ClientHello, 20)
+	make_field(ranking, 7, TYPE_STRING)
+	make_field(commendation, 8, TYPE_STRING)
+	make_field(player_level, 17, TYPE_INT32)
 };
-struct PlayerCommendationInfo {
-	constexpr static size_t MAX_FIELD = 4;
-	constexpr static Tag cmd_friendly = {1, TYPE_UINT32};
-	constexpr static Tag cmd_teaching = {2, TYPE_UINT32};
-	constexpr static Tag cmd_leader = {4, TYPE_UINT32};
+make_struct(PlayerCommendationInfo, 4)
+	make_field(cmd_friendly, 1, TYPE_UINT32)
+	make_field(cmd_teaching, 2, TYPE_UINT32)
+	make_field(cmd_leader, 4, TYPE_UINT32)
 };
-struct PlayerRankingInfo {
-	constexpr static size_t MAX_FIELD = 6;
-	constexpr static Tag rank_id = {2, TYPE_UINT32};
-	constexpr static Tag wins = {3, TYPE_UINT32};
+make_struct(PlayerRankingInfo, 6)
+	make_field(rank_id, 2, TYPE_UINT32)
+	make_field(wins, 4, TYPE_UINT32)
 };
 
 // InvChanger
