@@ -69,54 +69,54 @@ inline std::string get_4bytes(T value)
 template<typename T>
 inline std::string make_econ_item_attribute(int def_index, T value)
 {
-	ProtoWriter attribute(CSOEconItemAttribute::MAX_FIELD);
-	attribute.add(CSOEconItemAttribute::def_index, def_index);
-	attribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(value));
+	CSOEconItemAttribute attribute;
+	attribute.add_def_index(def_index);
+	attribute.add_value_bytes(get_4bytes(value));
 	return attribute.serialize();
 }
 
 inline std::string make_equipped_state(int team, int slot)
 {
-	ProtoWriter equipped_state(CSOEconItemEquipped::MAX_FIELD);
-	equipped_state.add(CSOEconItemEquipped::new_class, team);
-	equipped_state.add(CSOEconItemEquipped::new_slot, slot);
+	CSOEconItemEquipped equipped_state;
+	equipped_state.add_new_class(team);
+	equipped_state.add_new_slot(slot);
 	return equipped_state.serialize();
 }
 
 static std::string inventory_changer(void *pubDest, uint32_t *pcubMsgSize) {
-	ProtoWriter msg((void*)((DWORD)pubDest + 8), *pcubMsgSize - 8, CMsgClientWelcome::MAX_FIELD);
-	if (msg.getAll(CMsgClientWelcome::outofdate_subscribed_caches).empty())
+	CMsgClientWelcome msg((void*)((DWORD)pubDest + 8), *pcubMsgSize - 8);
+	if (msg.getAll_outofdate_subscribed_caches().empty())
 		return msg.serialize();
 
-	ProtoWriter cache(msg.get(CMsgClientWelcome::outofdate_subscribed_caches).String(), CMsgSOCacheSubscribed::MAX_FIELD);
+	CMsgSOCacheSubscribed cache(msg.get_outofdate_subscribed_caches().String());
 	// If not have items in inventory, Create null inventory
 	fix_null_inventory(cache); 
 	// Add custom items
-	auto objects = cache.getAll(CMsgSOCacheSubscribed::objects);
+	auto objects = cache.getAll_objects();
 	for (size_t i = 0; i < objects.size(); i++)
 	{
-		ProtoWriter object(objects[i].String(), SubscribedType::MAX_FIELD);
+		SubscribedType object(objects[i].String());
 
-		if (!object.has(SubscribedType::type_id))
+		if (!object.has_type_id())
 			continue;
 
-		switch (object.get(SubscribedType::type_id).Int32())
+		switch (object.get_type_id().Int32())
 		{
 			case 1: // Inventory
 			{
 				if (true) //g_Options.skins_packet_clear_default_items
-					object.clear(SubscribedType::object_data);
+					object.clear_object_data();
 
 				clear_equip_state(object);
 				apply_medals(object);
 				apply_music_kits(object);
 				add_all_items(object);
-				cache.replace(CMsgSOCacheSubscribed::objects, object.serialize(), i);
+				cache.replace_objects(object.serialize(), i);
 			}
 			break;
 		}
 	}
-	msg.replace(CMsgClientWelcome::outofdate_subscribed_caches, cache.serialize(), 0);
+	msg.replace_outofdate_subscribed_caches(cache.serialize(), 0);
 	
 	return msg.serialize();
 }
