@@ -285,6 +285,22 @@ static void add_all_items(ProtoWriter& object)
 
 static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemIndex, int rarity, int paintKit, int seed, float wear, std::string name)
 {
+	const auto& make_econ_item_attribute = [](int def_index, std::string _4bytes)
+	{
+		ProtoWriter attribute(CSOEconItemAttribute::MAX_FIELD);
+		attribute.add(CSOEconItemAttribute::def_index, def_index);
+		attribute.add(CSOEconItemAttribute::value_bytes, _4bytes);
+		return attribute.serialize();
+	};
+
+	const auto& make_equipped_state = [](int team, int defIndex)
+	{
+		ProtoWriter equipped_state(CSOEconItemEquipped::MAX_FIELD);
+		equipped_state.add(CSOEconItemEquipped::new_class, team);
+		equipped_state.add(CSOEconItemEquipped::new_slot, GetSlotID(defIndex));
+		return equipped_state.serialize();
+	};
+
 	uint32_t steamid = g_SteamUser->GetSteamID().GetAccountID();
 
 	ProtoWriter item(CSOEconItem::MAX_FIELD);
@@ -305,65 +321,30 @@ static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemInd
 	if (name.size() > 0)
 		item.add(CSOEconItem::custom_name, name);
 
-	// Equip new skins
-	{
-		TeamID avalTeam = GetAvailableClassID(itemIndex);
+	// Add equipped state for both teams
+	TeamID avalTeam = GetAvailableClassID(itemIndex);
 
-		if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_TERRORIST) {
-			ProtoWriter equipped_state(CSOEconItemEquipped::MAX_FIELD);
-			equipped_state.add(CSOEconItemEquipped::new_class, TEAM_TERRORIST);
-			equipped_state.add(CSOEconItemEquipped::new_slot, GetSlotID(itemIndex));
-			item.add(CSOEconItem::equipped_state, equipped_state.serialize());
-		}
-		if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_COUNTER_TERRORIST) {
-			ProtoWriter equipped_state(CSOEconItemEquipped::MAX_FIELD);
-			equipped_state.add(CSOEconItemEquipped::new_class, TEAM_COUNTER_TERRORIST);
-			equipped_state.add(CSOEconItemEquipped::new_slot, GetSlotID(itemIndex));
-			item.add(CSOEconItem::equipped_state, equipped_state.serialize());
-		}
+	if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_TERRORIST) {
+		item.add(CSOEconItem::equipped_state, make_equipped_state(TEAM_TERRORIST, itemIndex));
 	}
-	// Paint Kit
-	ProtoWriter PaintKitAttribute(CSOEconItemAttribute::MAX_FIELD);
-	PaintKitAttribute.add(CSOEconItemAttribute::def_index, 6);
-	PaintKitAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes((float)paintKit));
-	item.add(CSOEconItem::attribute, PaintKitAttribute.serialize());
+	if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_COUNTER_TERRORIST) {
+		item.add(CSOEconItem::equipped_state, make_equipped_state(TEAM_COUNTER_TERRORIST, itemIndex));
+	}
 
-	// Paint Seed
-	ProtoWriter SeedAttribute(CSOEconItemAttribute::MAX_FIELD);
-	SeedAttribute.add(CSOEconItemAttribute::def_index, 7);
-	SeedAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes((float)seed));
-	item.add(CSOEconItem::attribute, SeedAttribute.serialize());
-
-	// Paint Wear
-	ProtoWriter WearAttribute(CSOEconItemAttribute::MAX_FIELD);
-	WearAttribute.add(CSOEconItemAttribute::def_index, 8);
-	WearAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(wear));
-	item.add(CSOEconItem::attribute, WearAttribute.serialize());
+	// Add CSOEconItemAttribute's
+	item.add(CSOEconItem::attribute, make_econ_item_attribute(6, get_4bytes((float)paintKit)));
+	item.add(CSOEconItem::attribute, make_econ_item_attribute(7, get_4bytes((float)seed)));
+	item.add(CSOEconItem::attribute, make_econ_item_attribute(8, get_4bytes((float)wear)));
 
 	// Stickers
 	for (int j = 0; j < 4; j++)
 	{
-		// Sticker Kit
-		ProtoWriter StickerKitAttribute(CSOEconItemAttribute::MAX_FIELD);
-		StickerKitAttribute.add(CSOEconItemAttribute::def_index, (113 + 4 * j));
-		StickerKitAttribute.add(CSOEconItemAttribute::value_bytes, std::string("\x00\x00\x00\x00"));
-		item.add(CSOEconItem::attribute, StickerKitAttribute.serialize());
-		// Sticker Wear
-		ProtoWriter StickerWearAttribute(CSOEconItemAttribute::MAX_FIELD);
-		StickerWearAttribute.add(CSOEconItemAttribute::def_index, (114 + 4 * j));
-		StickerWearAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(0.001f));
-		item.add(CSOEconItem::attribute, StickerWearAttribute.serialize());
-		// Sticker Scale
-		ProtoWriter StickerScaleAttribute(CSOEconItemAttribute::MAX_FIELD);
-		StickerScaleAttribute.add(CSOEconItemAttribute::def_index, (115 + 4 * j));
-		StickerScaleAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(1.f));
-		item.add(CSOEconItem::attribute, StickerScaleAttribute.serialize());
-		// Sticker Rotation
-		ProtoWriter StickerRotationAttribute(CSOEconItemAttribute::MAX_FIELD);
-		StickerRotationAttribute.add(CSOEconItemAttribute::def_index, (116 + 4 * j));
-		StickerRotationAttribute.add(CSOEconItemAttribute::value_bytes, get_4bytes(0.f));
-		item.add(CSOEconItem::attribute, StickerRotationAttribute.serialize());
+		item.add(CSOEconItem::attribute, make_econ_item_attribute(113 + 4 * j, get_4bytes((uint32_t)289 + j))); // Sticker Kit
+		item.add(CSOEconItem::attribute, make_econ_item_attribute(114 + 4 * j, get_4bytes((float)0.001f)));     // Sticker Wear
+		item.add(CSOEconItem::attribute, make_econ_item_attribute(115 + 4 * j, get_4bytes((float)1.f)));        // Sticker Scale
+		item.add(CSOEconItem::attribute, make_econ_item_attribute(116 + 4 * j, get_4bytes((float)0.f)));        // Sticker Rotation
 	}
+
 	object.add(SubscribedType::object_data, item.serialize());
 }
 
