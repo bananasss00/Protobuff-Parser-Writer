@@ -62,8 +62,8 @@ bool Protobuffs::PreSendMessage(uint32_t &unMsgType, void* pubData, uint32_t &cu
 ///////////////////////////////////
 bool Protobuffs::SendClientHello()
 {
-	ProtoWriter msg(CMsgClientHello::MAX_FIELD);
-	msg.add(CMsgClientHello::client_session_need, 1);
+	CMsgClientHello msg;
+	msg.add_client_session_need(1);
 	auto packet = msg.serialize();
 
 	void* ptr = malloc(packet.size() + 8);
@@ -102,11 +102,11 @@ bool Protobuffs::SendMatchmakingClient2GCHello()
 
 bool Protobuffs::EquipWeapon(int weaponid, int classid, int slotid)
 {
-	ProtoWriter msg(CMsgAdjustItemEquippedState::MAX_FIELD);
-	msg.add(CMsgAdjustItemEquippedState::item_id, (START_ITEM_INDEX + weaponid));
-	msg.add(CMsgAdjustItemEquippedState::new_class, classid);
-	msg.add(CMsgAdjustItemEquippedState::new_slot, slotid);
-	msg.add(CMsgAdjustItemEquippedState::swap, true);
+	CMsgAdjustItemEquippedState msg;
+	msg.add_item_id(START_ITEM_INDEX + weaponid);
+	msg.add_new_class(classid);
+	msg.add_new_slot(slotid);
+	msg.add_swap(true);
 	auto packet = msg.serialize();
 
 	void* ptr = malloc(packet.size() + 8);

@@ -9,9 +9,9 @@
 #define make_struct(_name_, _size_) \
 	struct _name_ : ProtoWriter { \
 		constexpr static size_t MAX_FIELD = _size_; \
-		_name_()						: ProtoWriter(MAX_FIELD) {}; \
-		_name_(void* data, size_t size) : ProtoWriter(data, size, MAX_FIELD) {}; \
-		_name_(std::string data)        : ProtoWriter(data, MAX_FIELD) {};
+		_name_()						: ProtoWriter(MAX_FIELD) {} \
+		_name_(void* data, size_t size) : ProtoWriter(data, size, MAX_FIELD) {} \
+		_name_(std::string data)        : ProtoWriter(data, MAX_FIELD) {}
 
 #define make_field(_name_, _id_, _type_) \
 	constexpr static Tag _name_ = { _id_, _type_ }; \
@@ -27,6 +27,73 @@
 	template<typename T> void replace_##_name_(T v) { this->replace(_name_, v); } \
 	template<typename T> void replace_##_name_(T v, uint32_t index) { this->replace(_name_, v, index); } \
 	template<class T> T get_##_name_() { return std::move( T(this->get(_name_).String()) ); }
+
+/* 
+ * make_struct and make_field make inherited struct from ProtoWriter and add methods for work with fields
+ * 
+ * Example generated struct with one field:
+ * 
+ * make_struct(CMsgClientHello, 8)
+ *    make_field(client_session_need, 3, TYPE_UINT32)
+ * };
+ * 
+ * struct CMsgClientHello : ProtoWriter {
+ *    constexpr static size_t MAX_FIELD = 8;
+ *    CMsgClientHello() : ProtoWriter(MAX_FIELD) {}
+ *    CMsgClientHello(void* data, size_t size) : ProtoWriter(data, size, MAX_FIELD) {}
+ *    CMsgClientHello(std::string data) : ProtoWriter(data, MAX_FIELD) {}
+ *    
+ *    constexpr static Tag client_session_need = { 3, TYPE_UINT32 };
+ *    
+ *    void clear_client_session_need() {
+ *		this->clear(client_session_need);
+ *	  }
+ *	  
+ *    bool has_client_session_need() {
+ *       return this->has(client_session_need);
+ *    }
+ *    
+ *    Field get_client_session_need() {
+ *       return this->get(client_session_need);
+ *    }
+ *    
+ *    std::vector<Field> getAll_client_session_need() {
+ *       return this->getAll(client_session_need);
+ *    }
+ *    
+ *    void add_client_session_need(std::string v) {
+ *       this->add(client_session_need, v);
+ *    }
+ *    
+ *    template<typename T>
+ *    void add_client_session_need(T v) {
+ *       this->add(client_session_need, v);
+ *    }
+ *    
+ *    void replace_client_session_need(std::string v) {
+ *       this->replace(client_session_need, v);
+ *    }
+ *    
+ *    void replace_client_session_need(std::string v, uint32_t index) {
+ *       this->replace(client_session_need, v, index);
+ *    }
+ *    
+ *    template<typename T>
+ *    void replace_client_session_need(T v) {
+ *       this->replace(client_session_need, v);
+ *    }
+ *    
+ *    template<typename T>
+ *    void replace_client_session_need(T v, uint32_t index) {
+ *       this->replace(client_session_need, v, index);
+ *    }
+ *    
+ *    template<class T>
+ *    T get_client_session_need() {
+ *       return std::move( T(this->get(client_session_need).String()) );
+ *    }
+ * };
+ */
 	
 
 struct Tag

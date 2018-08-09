@@ -49,12 +49,12 @@ std::vector<wskin> g_skins = {
 #define START_MUSICKIT_INDEX 1500000
 #define START_ITEM_INDEX     2000000
 
-static void fix_null_inventory(ProtoWriter& cache);
-static void clear_equip_state(ProtoWriter& object);
-static void apply_medals(ProtoWriter& object);
-static void apply_music_kits(ProtoWriter& object);
-static void add_all_items(ProtoWriter& object);
-static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemIndex, int rarity, int paintKit, int seed, float wear, std::string name);
+static void fix_null_inventory(CMsgSOCacheSubscribed& cache);
+static void clear_equip_state(SubscribedType& object);
+static void apply_medals(SubscribedType& object);
+static void apply_music_kits(SubscribedType& object);
+static void add_all_items(SubscribedType& object);
+static void add_item(SubscribedType& object, int index, ItemDefinitionIndex itemIndex, int rarity, int paintKit, int seed, float wear, std::string name);
 static TeamID GetAvailableClassID(int definition_index);
 static int GetSlotID(int definition_index);
 static std::vector<uint32_t> music_kits = { 3, 4, 5, 6, 7, 8 };
@@ -85,10 +85,10 @@ inline std::string make_equipped_state(int team, int slot)
 
 static std::string inventory_changer(void *pubDest, uint32_t *pcubMsgSize) {
 	CMsgClientWelcome msg((void*)((DWORD)pubDest + 8), *pcubMsgSize - 8);
-	if (msg.getAll_outofdate_subscribed_caches().empty())
+	if (!msg.has_outofdate_subscribed_caches())
 		return msg.serialize();
 
-	CMsgSOCacheSubscribed cache(msg.get_outofdate_subscribed_caches().String());
+	CMsgSOCacheSubscribed cache = msg.get_outofdate_subscribed_caches<CMsgSOCacheSubscribed>();
 	// If not have items in inventory, Create null inventory
 	fix_null_inventory(cache); 
 	// Add custom items
@@ -147,16 +147,16 @@ static bool inventory_changer_presend(void* pubData, uint32_t &cubData)
 	return false;
 }
 
-static void fix_null_inventory(ProtoWriter& cache)
+static void fix_null_inventory(CMsgSOCacheSubscribed& cache)
 {
 	bool inventory_exist = false;
-	auto objects = cache.getAll(CMsgSOCacheSubscribed::objects);
+	auto objects = cache.getAll_objects();
 	for (size_t i = 0; i < objects.size(); i++)
 	{
-		ProtoWriter object(objects[i].String(), SubscribedType::MAX_FIELD);
-		if (!object.has(SubscribedType::type_id))
+		SubscribedType object(objects[i].String());
+		if (!object.has_type_id())
 			continue;
-		if (object.get(SubscribedType::type_id).Int32() != 1)
+		if (object.get_type_id().Int32() != 1)
 			continue;
 		inventory_exist = true;
 		break;
@@ -164,171 +164,171 @@ static void fix_null_inventory(ProtoWriter& cache)
 	if (!inventory_exist)
 	{
 		int cache_size = objects.size();
-		ProtoWriter null_object(SubscribedType::MAX_FIELD);
-		null_object.add(SubscribedType::type_id, 1);
+		SubscribedType null_object;
+		null_object.add_type_id(1);
 
-		cache.add(CMsgSOCacheSubscribed::objects, null_object.serialize());
+		cache.add_objects( null_object.serialize() );
 	}
 }
 
-static void clear_equip_state(ProtoWriter& object)
+static void clear_equip_state(SubscribedType& object)
 {
-	auto object_data = object.getAll(SubscribedType::object_data);
+	auto object_data = object.getAll_object_data();
 	for (size_t j = 0; j < object_data.size(); j++)
 	{
-		ProtoWriter item(object_data[j].String(), CSOEconItem::MAX_FIELD);
+		CSOEconItem item( object_data[j].String() );
 
-		if (item.getAll(CSOEconItem::equipped_state).empty())
+		if (!item.has_equipped_state())
 			continue;
 
 		// create NOT equiped state for item
 		auto null_equipped_state = make_equipped_state(0, 0);
 		
 		// unequip all
-		auto equipped_state = item.getAll(CSOEconItem::equipped_state);
+		auto equipped_state = item.getAll_equipped_state();
 		for (size_t k = 0; k < equipped_state.size(); k++)
-			item.replace(CSOEconItem::equipped_state, null_equipped_state, k);
+			item.replace_equipped_state(null_equipped_state, k);
 
-		object.replace(SubscribedType::object_data, item.serialize(), j);
+		object.replace_object_data(item.serialize(), j);
 	}
 }
 
 std::vector<uint32_t> packets_medals = { 1372, 958, 957, 956, 955 };
 int packets_equipped_medal = 874;
 
-static void apply_medals(ProtoWriter& object)
+static void apply_medals(SubscribedType& object)
 {
 	uint32_t steamid = g_SteamUser->GetSteamID().GetAccountID();
 
-	ProtoWriter medal(CSOEconItem::MAX_FIELD);
-	medal.add(CSOEconItem::account_id, steamid);
-	medal.add(CSOEconItem::origin, 9);
-	medal.add(CSOEconItem::rarity, 6);
-	medal.add(CSOEconItem::quantity, 1);
-	medal.add(CSOEconItem::quality, 4);
-	medal.add(CSOEconItem::level, 1);
+	CSOEconItem medal;
+	medal.add_account_id(steamid);
+	medal.add_origin(9);
+	medal.add_rarity(6);
+	medal.add_quantity(1);
+	medal.add_quality(4);
+	medal.add_level(1);
 
 	// Time acquired attribute
-	medal.add(CSOEconItem::attribute, make_econ_item_attribute(222, (uint32_t)std::time(0)));
+	medal.add_attribute(make_econ_item_attribute(222, (uint32_t)std::time(0)));
 
 	int i = 10000;
 	for (uint32_t MedalIndex : packets_medals)
 	{
-		medal.add(CSOEconItem::def_index, MedalIndex);
-		medal.add(CSOEconItem::inventory, i);
-		medal.add(CSOEconItem::id, i);
-		object.add(SubscribedType::object_data, medal.serialize());
+		medal.add_def_index(MedalIndex);
+		medal.add_inventory(i);
+		medal.add_id(i);
+		object.add_object_data(medal.serialize());
 		i++;
 	}
 
 	if (packets_equipped_medal)
 	{
-		medal.add(CSOEconItem::def_index, packets_equipped_medal);
-		medal.add(CSOEconItem::inventory, i);
-		medal.add(CSOEconItem::id, i);
-		medal.add(CSOEconItem::equipped_state, make_equipped_state(0, 55));
-		object.add(SubscribedType::object_data, medal.serialize());
+		medal.add_def_index(packets_equipped_medal);
+		medal.add_inventory(i);
+		medal.add_id(i);
+		medal.add_equipped_state(make_equipped_state(0, 55));
+		object.add_object_data(medal.serialize());
 	}
 }
 
-static void apply_music_kits(ProtoWriter& object)
+static void apply_music_kits(SubscribedType& object)
 {
 	uint32_t steamid = g_SteamUser->GetSteamID().GetAccountID();
 
-	ProtoWriter music_kit(CSOEconItem::MAX_FIELD);
-	music_kit.add(CSOEconItem::account_id, steamid);
-	music_kit.add(CSOEconItem::origin, 9);
-	music_kit.add(CSOEconItem::rarity, 6);
-	music_kit.add(CSOEconItem::quantity, 1);
-	music_kit.add(CSOEconItem::quality, 4);
-	music_kit.add(CSOEconItem::level, 1);
-	music_kit.add(CSOEconItem::flags, 0);
-	music_kit.add(CSOEconItem::def_index, 1314);
+	CSOEconItem music_kit;
+	music_kit.add_account_id(steamid);
+	music_kit.add_origin(9);
+	music_kit.add_rarity(6);
+	music_kit.add_quantity(1);
+	music_kit.add_quality(4);
+	music_kit.add_level(1);
+	music_kit.add_flags(0);
+	music_kit.add_def_index(1314);
 
 	// Time acquired attribute
-	music_kit.add(CSOEconItem::attribute, make_econ_item_attribute(75, (uint32_t)std::time(0)));
+	music_kit.add_attribute(make_econ_item_attribute(75, (uint32_t)std::time(0)));
 
 	int selected_musickit_gui = 16;
 	for (int i = 3; i <= 38; ++i)
 	{
 		if (selected_musickit_gui != i)
 		{
-			music_kit.add(CSOEconItem::attribute, make_econ_item_attribute(166, i)); // Music kit id
-			music_kit.add(CSOEconItem::inventory, (START_MUSICKIT_INDEX + i));
-			music_kit.add(CSOEconItem::id, (START_MUSICKIT_INDEX + i));
-			object.add(SubscribedType::object_data, music_kit.serialize());
+			music_kit.add_attribute(make_econ_item_attribute(166, i)); // Music kit id
+			music_kit.add_inventory(START_MUSICKIT_INDEX + i);
+			music_kit.add_id(START_MUSICKIT_INDEX + i);
+			object.add_object_data( music_kit.serialize() );
 		}
 	}
 
 	if (selected_musickit_gui)
 	{
-		music_kit.add(CSOEconItem::attribute, make_econ_item_attribute(166, selected_musickit_gui)); // Music kit id
-		music_kit.add(CSOEconItem::inventory, (START_MUSICKIT_INDEX + selected_musickit_gui));
-		music_kit.add(CSOEconItem::id, (START_MUSICKIT_INDEX + selected_musickit_gui));
-		music_kit.add(CSOEconItem::equipped_state, make_equipped_state(0, 54));
-		object.add(SubscribedType::object_data, music_kit.serialize());
+		music_kit.add_attribute(make_econ_item_attribute(166, selected_musickit_gui)); // Music kit id
+		music_kit.add_inventory(START_MUSICKIT_INDEX + selected_musickit_gui);
+		music_kit.add_id(START_MUSICKIT_INDEX + selected_musickit_gui);
+		music_kit.add_equipped_state(make_equipped_state(0, 54));
+		object.add_object_data(music_kit.serialize());
 	}
 }
 
-static void add_all_items(ProtoWriter& object)
+static void add_all_items(SubscribedType& object)
 {
 	int l = 1;
 	for (auto& x : g_skins) {
-		add_item(object, l, (ItemDefinitionIndex)x.wId, 6, x.paintkit, 0, FLT_MIN, "");
+		add_item(object, l, (ItemDefinitionIndex)x.wId, 6, x.paintkit, 0, FLT_MIN, "unknowncheats.me");
 		l++;
 	}
 }
 
-static void add_item(ProtoWriter& object, int index, ItemDefinitionIndex itemIndex, int rarity, int paintKit, int seed, float wear, std::string name)
+static void add_item(SubscribedType& object, int index, ItemDefinitionIndex itemIndex, int rarity, int paintKit, int seed, float wear, std::string name)
 {
 	uint32_t steamid = g_SteamUser->GetSteamID().GetAccountID();
 
-	ProtoWriter item(CSOEconItem::MAX_FIELD);
-	item.add(CSOEconItem::id, (START_ITEM_INDEX + itemIndex));
-	item.add(CSOEconItem::account_id, steamid);
-	item.add(CSOEconItem::def_index, itemIndex);
-	item.add(CSOEconItem::inventory, (START_ITEM_INDEX + index));
-	item.add(CSOEconItem::origin, 24);
-	item.add(CSOEconItem::quantity, 1);
-	item.add(CSOEconItem::level, 1);
-	item.add(CSOEconItem::style, 0);
-	item.add(CSOEconItem::flags, 0);
-	item.add(CSOEconItem::in_use, true);
-	item.add(CSOEconItem::original_id, 0);
-	item.add(CSOEconItem::rarity, rarity);
-	item.add(CSOEconItem::quality, 0);
+	CSOEconItem item;
+	item.add_id(START_ITEM_INDEX + itemIndex);
+	item.add_account_id(steamid);
+	item.add_def_index(itemIndex);
+	item.add_inventory(START_ITEM_INDEX + index);
+	item.add_origin(24);
+	item.add_quantity(1);
+	item.add_level(1);
+	item.add_style(0);
+	item.add_flags(0);
+	item.add_in_use(true);
+	item.add_original_id(0);
+	item.add_rarity(rarity);
+	item.add_quality(0);
 
 	if (name.size() > 0)
-		item.add(CSOEconItem::custom_name, name);
+		item.add_custom_name(name);
 
 	// Add equipped state for both teams
 	TeamID avalTeam = GetAvailableClassID(itemIndex);
 
 	if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_TERRORIST) {
-		item.add(CSOEconItem::equipped_state, make_equipped_state(TEAM_TERRORIST, GetSlotID(itemIndex)));
+		item.add_equipped_state( make_equipped_state(TEAM_TERRORIST, GetSlotID(itemIndex)) );
 	}
 	if (avalTeam == TeamID::TEAM_SPECTATOR || avalTeam == TeamID::TEAM_COUNTER_TERRORIST) {
-		item.add(CSOEconItem::equipped_state, make_equipped_state(TEAM_COUNTER_TERRORIST, GetSlotID(itemIndex)));
+		item.add_equipped_state( make_equipped_state(TEAM_COUNTER_TERRORIST, GetSlotID(itemIndex)) );
 	}
 
 	// Add CSOEconItemAttribute's
-	item.add(CSOEconItem::attribute, make_econ_item_attribute(6, float(paintKit)));
-	item.add(CSOEconItem::attribute, make_econ_item_attribute(7, float(seed)));
-	item.add(CSOEconItem::attribute, make_econ_item_attribute(8, float(wear)));
+	item.add_attribute(make_econ_item_attribute(6, float(paintKit)));
+	item.add_attribute(make_econ_item_attribute(7, float(seed)));
+	item.add_attribute(make_econ_item_attribute(8, float(wear)));
 
 	// Time acquired attribute
-	item.add(CSOEconItem::attribute, make_econ_item_attribute(180, (uint32_t)std::time(0)));
+	item.add_attribute(make_econ_item_attribute(180, (uint32_t)std::time(0)));
 
 	// Stickers
 	for (int j = 0; j < 4; j++)
 	{
-		item.add(CSOEconItem::attribute, make_econ_item_attribute(113 + 4 * j, uint32_t(289 + j))); // Sticker Kit
-		item.add(CSOEconItem::attribute, make_econ_item_attribute(114 + 4 * j, float(0.001f)));     // Sticker Wear
-		item.add(CSOEconItem::attribute, make_econ_item_attribute(115 + 4 * j, float(1.f)));        // Sticker Scale
-		item.add(CSOEconItem::attribute, make_econ_item_attribute(116 + 4 * j, float(0.f)));        // Sticker Rotation
+		item.add_attribute(make_econ_item_attribute(113 + 4 * j, uint32_t(289 + j))); // Sticker Kit
+		item.add_attribute(make_econ_item_attribute(114 + 4 * j, float(0.001f)));     // Sticker Wear
+		item.add_attribute(make_econ_item_attribute(115 + 4 * j, float(1.f)));        // Sticker Scale
+		item.add_attribute(make_econ_item_attribute(116 + 4 * j, float(0.f)));        // Sticker Rotation
 	}
 
-	object.add(SubscribedType::object_data, item.serialize());
+	object.add_object_data(item.serialize());
 }
 
 static TeamID GetAvailableClassID(int definition_index)

@@ -74,5 +74,5 @@ make_struct(CSOEconItemEquipped, 2)
 make_struct(CSOEconItemAttribute, 3)
 	make_field(def_index, 1, TYPE_UINT32)
 	make_field(value, 2, TYPE_UINT32)
-	make_field(value_bytes, 2, TYPE_STRING)
+	make_field(value_bytes, 3, TYPE_STRING)
 };
