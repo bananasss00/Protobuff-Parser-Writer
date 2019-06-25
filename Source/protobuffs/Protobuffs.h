@@ -10,6 +10,7 @@ public:
 	bool PreSendMessage(uint32_t &unMsgType, void* pubData, uint32_t &cubData);
 	bool SendClientHello();
 	bool SendMatchmakingClient2GCHello();
+	bool SendClientGcRankUpdate();
 	bool EquipWeapon(int weaponid, int classid, int slotid);
 	void EquipAll();
 };

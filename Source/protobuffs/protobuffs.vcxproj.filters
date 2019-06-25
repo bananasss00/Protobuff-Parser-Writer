@@ -42,7 +42,7 @@
     <ClInclude Include="IMemAlloc.h">
       <Filter>src</Filter>
     </ClInclude>
-    <ClInclude Include="Protobuffs\ProtoParse.h">
+    <ClInclude Include="Protobuffs\pbwrap.hpp">
       <Filter>src\Protobuffs</Filter>
     </ClInclude>
   </ItemGroup>
