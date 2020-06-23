@@ -15,21 +15,23 @@ void Protobuffs::WritePacket(std::string packet, void* thisPtr, void* oldEBP, vo
 	}
 	else if (g_pMemAlloc)
 	{
-		auto memPtr = *CAST(void**, thisPtr, 0x14);
-		auto memPtrSize = *CAST(uint32_t*, thisPtr, 0x18);
+		auto memPtr = *CAST(void**, thisPtr, 0x18);
+		auto memPtrSize = *CAST(uint32_t*, thisPtr, 0x1C);
 		auto newSize = (memPtrSize - cubDest) + packet.size() + 8;
 
 		auto memory = g_pMemAlloc->Realloc(memPtr, newSize + 4);
 
-		*CAST(void**, thisPtr, 0x14) = memory;
-		*CAST(uint32_t*, thisPtr, 0x18) = newSize;
+		*CAST(void**, thisPtr, 0x18) = memory;
+		*CAST(uint32_t*, thisPtr, 0x1C) = newSize;
 		*CAST(void**, oldEBP, -0x14) = memory;
 
-		memcpy(CAST(void*, memory, 24), (void*)packet.data(), packet.size());
+		memcpy(CAST(void*, memory, 0x1C), (void*)packet.data(), packet.size());
 
 		*pcubMsgSize = packet.size() + 8;
 	}
 }
+
+static bool onceChanger = false;
 
 void Protobuffs::ReceiveMessage(void* thisPtr, void* oldEBP, uint32_t messageType, void *pubDest, uint32_t cubDest, uint32_t *pcubMsgSize)
 {
@@ -57,7 +59,16 @@ void Protobuffs::ReceiveMessage(void* thisPtr, void* oldEBP, uint32_t messageTyp
 	{
 		auto packet = inventory_changer(pubDest, pcubMsgSize);
 		WritePacket(packet, thisPtr, oldEBP, pubDest, cubDest, pcubMsgSize);
+		
+		if (!onceChanger) // idk why. all stuff not applied from first attempt
+		{
+		  SendClientHello();
+		  SendMatchmakingClient2GCHello();
+		  SendClientGcRankUpdate();
+		  onceChanger = true;
+		}
 	}
+	printf(".GC Receive: %d\n", messageType);
 }
 
 bool Protobuffs::PreSendMessage(uint32_t &unMsgType, void* pubData, uint32_t &cubData)
@@ -68,7 +79,7 @@ bool Protobuffs::PreSendMessage(uint32_t &unMsgType, void* pubData, uint32_t &cu
 	{
 		return inventory_changer_presend(pubData, cubData);
 	}
-
+	printf(".GC Sent: %d\n", MessageType);
 	return true;
 }
 
